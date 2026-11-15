@@ -74,7 +74,14 @@ function assetFor(assets: { name: string; browser_download_url: string; size?: n
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
   const patterns =
     process.platform === 'win32'
-      ? [/setup\.exe$/i]
+      ? [
+          // A zip is unpacked next to the running app and launched, so the
+          // update never has to overwrite the executable that Windows (or an
+          // antivirus file filter) is holding open.
+          /-win-x64\.zip$/i,
+          /-win-[\w-]+\.zip$/i,
+          /setup\.exe$/i,
+        ]
       : process.platform === 'darwin'
         ? [
             // The zip is the whole .app bundle, which is what lets Cloudy swap
@@ -298,6 +305,122 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
   return state;
 }
 
+/** A PowerShell single-quoted literal (paths never contain a quote we can't escape). */
+function psLiteral(value: string) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+const SHORTCUT_SCRIPT = `param([string]$OldExe, [string]$NewExe)
+$shell = New-Object -ComObject WScript.Shell
+$old = [IO.Path]::GetFullPath($OldExe)
+$roots = @(
+  Join-Path $env:APPDATA 'Microsoft\\Windows\\Start Menu',
+  Join-Path $env:ProgramData 'Microsoft\\Windows\\Start Menu',
+  Join-Path $env:USERPROFILE 'Desktop',
+  Join-Path $env:PUBLIC 'Desktop'
+)
+foreach ($root in $roots) {
+  if (-not (Test-Path -LiteralPath $root)) { continue }
+  Get-ChildItem -LiteralPath $root -Filter *.lnk -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+    try {
+      $shortcut = $shell.CreateShortcut($_.FullName)
+      if ($shortcut.TargetPath -and ([IO.Path]::GetFullPath($shortcut.TargetPath) -ieq $old)) {
+        $shortcut.TargetPath = $NewExe
+        $shortcut.WorkingDirectory = Split-Path -Parent $NewExe
+        $shortcut.Save()
+      }
+    } catch { }
+  }
+}
+`;
+
+/** Points Start Menu, desktop and startup shortcuts at the freshly installed copy. */
+async function repointShortcuts(oldExe: string, newExe: string) {
+  const script = path.join(os.tmpdir(), `cloudy-shortcuts-${Date.now()}.ps1`);
+  await fs.writeFile(script, SHORTCUT_SCRIPT, 'utf8');
+  await run(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, oldExe, newExe],
+    { windowsHide: true },
+  ).catch(() => undefined);
+  await fs.rm(script, { force: true }).catch(() => undefined);
+}
+
+/** Keeps "Apps & features" describing the folder that actually runs. */
+async function repointUninstallEntry(newRoot: string, version: string) {
+  const uninstaller = path.join(newRoot, 'Uninstall Cloudy.exe');
+  const hasUninstaller = await fs
+    .access(uninstaller)
+    .then(() => true)
+    .catch(() => false);
+  const script = `param([string]$Root, [string]$Version, [string]$Uninstaller)
+$key = Get-ChildItem 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall' -ErrorAction SilentlyContinue |
+  Where-Object { (Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'Cloudy*' } |
+  Select-Object -First 1
+if (-not $key) { return }
+Set-ItemProperty $key.PSPath -Name InstallLocation -Value $Root
+Set-ItemProperty $key.PSPath -Name DisplayVersion -Value $Version
+if ($Uninstaller) { Set-ItemProperty $key.PSPath -Name UninstallString -Value ('"' + $Uninstaller + '" /currentuser') }
+`;
+  const file = path.join(os.tmpdir(), `cloudy-uninstall-${Date.now()}.ps1`);
+  await fs.writeFile(file, script, 'utf8');
+  await run(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file, newRoot, version, hasUninstaller ? uninstaller : ''],
+    { windowsHide: true },
+  ).catch(() => undefined);
+  await fs.rm(file, { force: true }).catch(() => undefined);
+}
+
+/**
+ * Windows update that cannot be blocked by a locked executable.
+ *
+ * The NSIS installer has to delete `cloudy.exe` before it can replace it, which
+ * antivirus file filters refuse while the running app is still holding the file
+ * — the install then aborts with "old application files could not be
+ * uninstalled". Extracting the release zip into a sibling folder touches nothing
+ * that is in use: the new copy is started from there, the shortcuts start
+ * pointing at it, and the old folder is left to be cleaned up later.
+ */
+async function installWindowsZip(zip: string) {
+  const version = state.version ?? 'latest';
+  const currentExe = process.execPath;
+  const root = path.dirname(currentExe);
+  const destination = path.join(root, `app-${version}`);
+  const newExe = await expandWindowsZip(zip, destination);
+  await repointShortcuts(currentExe, newExe);
+  await repointUninstallEntry(destination, version);
+  publish({ ...state, phase: 'installing' });
+  const { spawn } = await import('node:child_process');
+  // Detached, so the new copy survives this process exiting. Arguments are
+  // carried over so a launched-with-flags instance (debugging, deep link) stays
+  // the same kind of instance.
+  spawn(newExe, process.argv.slice(1), { detached: true, stdio: 'ignore' }).unref();
+  setTimeout(() => app.quit(), 400);
+  return { ok: true };
+}
+
+/** Unpacks the release zip and returns the executable inside it. */
+async function expandWindowsZip(zip: string, destination: string) {
+  await fs.rm(destination, { recursive: true, force: true });
+  await fs.mkdir(destination, { recursive: true });
+  await run(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      `Expand-Archive -LiteralPath ${psLiteral(zip)} -DestinationPath ${psLiteral(destination)} -Force`,
+    ],
+    { windowsHide: true },
+  );
+  const exe = path.join(destination, 'cloudy.exe');
+  await fs.access(exe);
+  return exe;
+}
+
 async function install() {
   if (!installerPath) return { ok: false, error: 'No downloaded update' };
   if (installing) return { ok: true };
@@ -305,11 +428,12 @@ async function install() {
   publish({ ...state, phase: 'installing' });
   try {
     if (process.platform === 'win32') {
-      // The installer replaces the running executable, so it must not start
-      // until this process is gone: NSIS refuses to remove files held open and
-      // aborts with "old application files could not be uninstalled". The
-      // detached shell waits for Cloudy to exit, then runs the installer
-      // silently — same install directory, no wizard.
+      if (installerPath.endsWith('.zip')) return await installWindowsZip(installerPath);
+      // Older releases only carry the NSIS installer. It replaces the running
+      // executable, so it must not start until this process is gone: NSIS
+      // refuses to remove files held open and aborts with "old application files
+      // could not be uninstalled". The detached shell waits for Cloudy to exit,
+      // then runs the installer silently.
       await fs
         .writeFile(
           path.join(app.getPath('userData'), 'updates', 'pending.json'),
@@ -332,6 +456,18 @@ async function install() {
   } catch (error) {
     publish({ ...state, phase: 'error', error: (error as Error).message });
     return { ok: false, error: (error as Error).message };
+  }
+}
+
+/** Removes copies left behind by earlier zip updates (locked ones are skipped). */
+async function pruneOldVersions() {
+  if (process.platform !== 'win32' || !app.isPackaged) return;
+  const current = path.dirname(process.execPath);
+  if (!path.basename(current).startsWith('app-')) return;
+  const parent = path.dirname(current);
+  for (const entry of await fs.readdir(parent).catch(() => [] as string[])) {
+    if (!entry.startsWith('app-') || path.join(parent, entry) === current) continue;
+    await fs.rm(path.join(parent, entry), { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
@@ -364,6 +500,7 @@ export function registerUpdater() {
 
   if (!app.isPackaged) return;
   void reportBlockedUpdate();
+  void pruneOldVersions();
   timer = setTimeout(() => void checkForUpdates({ quiet: true }), FIRST_CHECK_DELAY);
   const interval = setInterval(() => void checkForUpdates({ quiet: true }), CHECK_INTERVAL);
   app.on('before-quit', () => {
