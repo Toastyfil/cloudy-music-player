@@ -1,7 +1,7 @@
 {
   "name": "cloudy",
   "productName": "Cloudy",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Cloudy — a desktop music player. Head in the clouds.",
   "author": "Cloudy",
   "license": "MIT",
@@ -90,8 +90,10 @@
       "signAndEditExecutable": true
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "runAfterFinish": true
     },
     "linux": {
       "target": [
