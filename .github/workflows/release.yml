@@ -133,7 +133,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cloudy-macos-${{ matrix.arch }}
-          path: release/*.dmg
+          # The zip carries the .app bundle the in-app updater swaps in; without
+          # it macOS falls back to opening the DMG in Finder.
+          path: |
+            release/*.dmg
+            release/*.zip
           if-no-files-found: error
           retention-days: 14
 
