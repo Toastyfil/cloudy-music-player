@@ -163,7 +163,7 @@ export function SettingsDialog() {
         : updatePhase === 'installing'
           ? 'Installing — Cloudy reopens on the new version.'
           : updatePhase === 'ready'
-            ? `Cloudy ${updateVersion ?? ''} is downloaded and ready to install.`
+            ? `Cloudy ${updateVersion ?? ''} is downloaded — it installs automatically when Cloudy quits.`
             : updatePhase === 'error'
               ? `Last check failed${updateError ? ` (${updateError})` : ''}${checkedLabel ? ` · ${checkedLabel}` : ''}`
               : updatePhase === 'current'
@@ -859,7 +859,7 @@ export function SettingsDialog() {
                     <div className="flex items-center gap-2">
                       {updatePhase === 'ready' ? (
                         <Button size="sm" onClick={() => void installUpdate()}>
-                          <RotateCw size={13} /> Restart & install
+                          <RotateCw size={13} /> Restart now
                         </Button>
                       ) : null}
                       <Button

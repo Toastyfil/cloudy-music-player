@@ -59,8 +59,8 @@ export function UpdateDialog() {
 
             <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
               {ready
-                ? 'Restart Cloudy to finish. Your library, playlists, settings and cached audio stay exactly where they are — nothing else to download.'
-                : 'It is downloading in the background. You can keep listening; Cloudy will ask again when it is done.'}
+                ? 'It installs itself the next time you quit Cloudy, so there is nothing else to download. Restart now to finish straight away — your library, playlists, settings and cached audio stay exactly as they are.'
+                : 'It is downloading in the background. You can keep listening; nothing restarts until the install is ready.'}
             </p>
 
             {notes ? <p className="mt-3 line-clamp-3 text-[11.5px] leading-relaxed text-faint">{notes}</p> : null}
@@ -80,7 +80,7 @@ export function UpdateDialog() {
                 onClick={dismiss}
                 className="rounded-full px-3.5 py-2 text-[12.5px] text-muted transition-colors hover:bg-surface hover:text-text"
               >
-                {ready ? 'Later' : 'Hide'}
+                {ready ? 'Close' : 'Hide'}
               </button>
               <button
                 onClick={() => void install()}
@@ -88,7 +88,7 @@ export function UpdateDialog() {
                 className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
               >
                 {ready ? <RotateCw size={13} /> : <Download size={13} />}
-                {ready ? 'Restart & install' : 'Installing when ready'}
+                {ready ? 'Restart now' : 'Installing when ready'}
               </button>
             </div>
           </motion.div>

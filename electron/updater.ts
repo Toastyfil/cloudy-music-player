@@ -43,6 +43,8 @@ let state: UpdateState = { phase: 'idle' };
 let installerPath: string | null = null;
 /** macOS only: the new bundle, unpacked from the release zip and ready to swap in. */
 let stagedApp: string | null = null;
+/** The hand-off to the installer already happened; never start a second one. */
+let installing = false;
 let timer: NodeJS.Timeout | null = null;
 let checking = false;
 
@@ -188,7 +190,7 @@ function shellPath(value: string) {
  * exit, copies the staged bundle over the old one and relaunches Cloudy. A drag
  * install in /Applications is root-owned, so that case escalates once.
  */
-async function installOnMac() {
+async function installOnMac(quit = true) {
   const target = currentBundle();
   if (stagedApp) {
     const { spawn } = await import('node:child_process');
@@ -214,7 +216,7 @@ async function installOnMac() {
         stdio: 'ignore',
       }).unref();
     }
-    setTimeout(() => app.quit(), 400);
+    if (quit) setTimeout(() => app.quit(), 400);
     return { ok: true };
   }
   // Releases before 1.1.2 shipped only a DMG, so those still open in Finder.
@@ -277,6 +279,7 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
 
 async function install() {
   if (!installerPath) return { ok: false, error: 'No downloaded update' };
+  installing = true;
   publish({ ...state, phase: 'installing' });
   try {
     if (process.platform === 'win32') {
@@ -287,12 +290,38 @@ async function install() {
       setTimeout(() => app.quit(), 400);
       return { ok: true };
     }
-    if (process.platform === 'darwin') return await installOnMac();
+    if (process.platform === 'darwin') return await installOnMac(true);
     await shell.openPath(installerPath);
     return { ok: true };
   } catch (error) {
     publish({ ...state, phase: 'error', error: (error as Error).message });
     return { ok: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * The update applies itself on the way out: a downloaded release is installed
+ * when Cloudy quits, so the next launch is already the new version even if the
+ * prompt was dismissed. Nothing here may keep the process alive.
+ */
+async function installOnQuit() {
+  if (installing || state.phase !== 'ready' || !installerPath) return;
+  installing = true;
+  try {
+    if (process.platform === 'win32') {
+      const { spawn } = await import('node:child_process');
+      // A detached shell outlives this process: it waits for the files to be
+      // released and then runs the installer without any window.
+      spawn('cmd.exe', ['/c', `timeout /t 2 /nobreak >nul & start "" "${installerPath}" /S`], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      }).unref();
+    } else if (process.platform === 'darwin') {
+      await installOnMac(false);
+    }
+  } catch (error) {
+    console.error('[cloudy] could not start the update on quit:', error);
   }
 }
 
@@ -307,5 +336,6 @@ export function registerUpdater() {
   app.on('before-quit', () => {
     if (timer) clearTimeout(timer);
     clearInterval(interval);
+    void installOnQuit();
   });
 }
