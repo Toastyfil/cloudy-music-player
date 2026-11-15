@@ -73,10 +73,28 @@ function assetFor(assets: { name: string; browser_download_url: string; size?: n
   return null;
 }
 
-async function download(url: string, name: string) {
+/** Release notes are Markdown; the prompt only needs the opening prose. */
+function summarise(body?: string) {
+  if (!body) return undefined;
+  const text = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^[-*_]{3,}$/.test(line) && !/^\|/.test(line) && !/^!\[/.test(line))
+    .map((line) => line.replace(/^#{1,6}\s*/, '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/`(.+?)`/g, '$1').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'))
+    .filter((line) => !/^[\d\s|:-]+$/.test(line));
+  return text.slice(0, 3).join(' ').slice(0, 320);
+}
+
+async function download(url: string, name: string, expected?: number) {
   const directory = path.join(app.getPath('userData'), 'updates');
   await fs.mkdir(directory, { recursive: true });
   const target = path.join(directory, name);
+  // An earlier session may already hold the finished installer; keep it rather
+  // than pulling another 130 MB.
+  if (expected) {
+    const existing = await fs.stat(target).catch(() => null);
+    if (existing && existing.size === expected) return target;
+  }
   await fs.rm(target, { force: true });
 
   const response = await fetch(url, {
@@ -137,13 +155,14 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
     const asset = assetFor(release.assets ?? []);
     if (!asset) throw new Error('This release has no installer for this platform');
 
-    publish({ phase: 'downloading', version: latest, notes: release.body?.slice(0, 600), progress: 0 });
-    const file = await download(asset.browser_download_url, asset.name);
+    const notes = summarise(release.body);
+    publish({ phase: 'downloading', version: latest, notes, progress: 0 });
+    const file = await download(asset.browser_download_url, asset.name, asset.size ? Number(asset.size) : undefined);
     installerPath = file;
     publish({
       phase: 'ready',
       version: latest,
-      notes: release.body?.slice(0, 600),
+      notes,
       progress: 1,
       total: Number(asset.size ?? 0) || undefined,
     });
