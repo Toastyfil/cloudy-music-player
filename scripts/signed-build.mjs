@@ -84,4 +84,5 @@ const env = { ...process.env, CSC_LINK: certLink, CSC_KEY_PASSWORD: certPassword
 run(npx, ['tsc', '-b']);
 run(npx, ['vite', 'build']);
 run(npx, ['electron-builder', '--win', 'nsis', '--publish', 'never', '-c.npmRebuild=false'], env);
-console.log(`\nInstaller: ${path.join(root, 'release', 'Cloudy-1.0.0-setup.exe')}`);
+const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+console.log(`\nInstaller: ${path.join(root, 'release', `Cloudy-${version}-setup.exe`)}`);

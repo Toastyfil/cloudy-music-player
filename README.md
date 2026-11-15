@@ -97,6 +97,8 @@ npx electron-builder --mac    # DMG; must be run on macOS
 
 `npm run dist:win:signed` packages with a code-signing certificate from `certificates/cloudy.pfx` or `CSC_LINK`; `-- --dev` signs with a throwaway self-signed certificate to test the pipeline.
 
+Signed releases are what stop antivirus and SmartScreen from flagging Cloudy; the repository secrets and certificate steps are in [docs/signing.md](docs/signing.md).
+
 ---
 
 ## How it fits together

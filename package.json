@@ -39,6 +39,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.2",
     "@tailwindcss/vite": "^4.1.11",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.15.30",
@@ -85,7 +86,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
     },
     "nsis": {
       "oneClick": false,
@@ -105,7 +107,11 @@
         "dmg",
         "zip"
       ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "asarUnpack": [
       "server/**/*",
@@ -119,7 +125,8 @@
           "**/*"
         ]
       }
-    ]
+    ],
+    "afterSign": "scripts/notarize.mjs"
   },
   "allowScripts": {
     "electron@37.10.3": true,
