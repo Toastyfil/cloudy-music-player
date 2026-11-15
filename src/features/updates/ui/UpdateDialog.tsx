@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Download, RotateCw } from 'lucide-react';
+import { bridge } from '@/shared/api/bridge';
 import { CloudyMark } from '@/shared/ui/Logo';
 import { useUpdatesStore } from '../store/updatesStore';
 
@@ -18,8 +19,10 @@ export function UpdateDialog() {
   const dismiss = useUpdatesStore((s) => s.dismiss);
   const install = useUpdatesStore((s) => s.install);
 
-  const open = !dismissed && (phase === 'downloading' || phase === 'ready' || phase === 'installing');
+  const message = useUpdatesStore((s) => s.error);
   const ready = phase === 'ready';
+  const failed = phase === 'error' && Boolean(message);
+  const open = !dismissed && (phase === 'downloading' || ready || phase === 'installing' || failed);
   const percent = Math.round(Math.min(1, Math.max(0, progress)) * 100);
 
   return (
@@ -49,7 +52,7 @@ export function UpdateDialog() {
               </span>
               <div className="min-w-0">
                 <h2 id="update-title" className="text-[15px] font-semibold tracking-[-0.01em]">
-                  {ready ? 'Update ready' : phase === 'installing' ? 'Installing' : 'Downloading update'}
+                  {failed ? 'Update blocked' : ready ? 'Update ready' : phase === 'installing' ? 'Installing' : 'Downloading update'}
                 </h2>
                 <p className="mt-0.5 text-[11.5px] text-muted">
                   Cloudy {version ?? ''} {ready ? 'is ready to install' : `· ${percent}%`}
@@ -58,9 +61,11 @@ export function UpdateDialog() {
             </div>
 
             <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
-              {ready
-                ? 'Restart Cloudy to finish. Your library, playlists, settings and cached audio stay exactly where they are — nothing else to download.'
-                : 'It is downloading in the background. You can keep listening; Cloudy asks again when it is done.'}
+              {failed
+                ? message
+                : ready
+                  ? 'Restart Cloudy to finish. Your library, playlists, settings and cached audio stay exactly where they are — nothing else to download.'
+                  : 'It is downloading in the background. You can keep listening; Cloudy asks again when it is done.'}
             </p>
 
             {notes ? <p className="mt-3 line-clamp-3 text-[11.5px] leading-relaxed text-faint">{notes}</p> : null}
@@ -80,16 +85,28 @@ export function UpdateDialog() {
                 onClick={dismiss}
                 className="rounded-full px-3.5 py-2 text-[12.5px] text-muted transition-colors hover:bg-surface hover:text-text"
               >
-                {ready ? 'Close' : 'Hide'}
+                {ready || failed ? 'Close' : 'Hide'}
               </button>
-              <button
-                onClick={() => void install()}
-                disabled={!ready}
-                className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
-              >
-                {ready ? <RotateCw size={13} /> : <Download size={13} />}
-                {ready ? 'Restart now' : 'Installing when ready'}
-              </button>
+              {failed ? (
+                <button
+                  onClick={() => {
+                    void bridge().shell.openExternal('https://github.com/Toastyfil/cloudy-music-player/releases/latest');
+                    dismiss();
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90"
+                >
+                  <Download size={13} /> Open download page
+                </button>
+              ) : (
+                <button
+                  onClick={() => void install()}
+                  disabled={!ready}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
+                >
+                  {ready ? <RotateCw size={13} /> : <Download size={13} />}
+                  {ready ? 'Restart now' : 'Installing when ready'}
+                </button>
+              )}
             </div>
           </motion.div>
         </motion.div>

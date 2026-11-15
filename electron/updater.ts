@@ -305,11 +305,25 @@ async function install() {
   publish({ ...state, phase: 'installing' });
   try {
     if (process.platform === 'win32') {
-      // NSIS runs this silently: same install directory, no wizard, no manual
-      // download. The app has to go away before the files can be replaced.
+      // The installer replaces the running executable, so it must not start
+      // until this process is gone: NSIS refuses to remove files held open and
+      // aborts with "old application files could not be uninstalled". The
+      // detached shell waits for Cloudy to exit, then runs the installer
+      // silently — same install directory, no wizard.
+      await fs
+        .writeFile(
+          path.join(app.getPath('userData'), 'updates', 'pending.json'),
+          JSON.stringify({ version: state.version, at: Date.now() }),
+          'utf8',
+        )
+        .catch(() => undefined);
       const { spawn } = await import('node:child_process');
-      spawn(installerPath, ['/S'], { detached: true, stdio: 'ignore' }).unref();
-      setTimeout(() => app.quit(), 400);
+      spawn('cmd.exe', ['/c', `timeout /t 3 /nobreak >nul & start "" "${installerPath}" /S`], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      }).unref();
+      setTimeout(() => app.quit(), 250);
       return { ok: true };
     }
     if (process.platform === 'darwin') return await installOnMac();
@@ -321,12 +335,35 @@ async function install() {
   }
 }
 
+/** An update was started but the running version never changed. */
+async function reportBlockedUpdate() {
+  if (!app.isPackaged) return;
+  const marker = path.join(app.getPath('userData'), 'updates', 'pending.json');
+  const raw = await fs.readFile(marker, 'utf8').catch(() => null);
+  if (!raw) return;
+  await fs.rm(marker, { force: true }).catch(() => undefined);
+  let version: string | undefined;
+  try {
+    version = (JSON.parse(raw) as { version?: string }).version;
+  } catch {
+    return;
+  }
+  if (!version || !isNewer(version, app.getVersion())) return;
+  publish({
+    phase: 'error',
+    version,
+    error: `Cloudy ${version} could not be installed automatically. Download it from the releases page and run it once.`,
+    checkedAt: Date.now(),
+  });
+}
+
 export function registerUpdater() {
   ipcMain.handle('update:state', () => state);
   ipcMain.handle('update:check', (_event, quiet?: boolean) => checkForUpdates({ quiet: Boolean(quiet) }));
   ipcMain.handle('update:install', () => install());
 
   if (!app.isPackaged) return;
+  void reportBlockedUpdate();
   timer = setTimeout(() => void checkForUpdates({ quiet: true }), FIRST_CHECK_DELAY);
   const interval = setInterval(() => void checkForUpdates({ quiet: true }), CHECK_INTERVAL);
   app.on('before-quit', () => {
