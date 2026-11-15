@@ -163,7 +163,7 @@ export function SettingsDialog() {
         : updatePhase === 'installing'
           ? 'Installing — Cloudy reopens on the new version.'
           : updatePhase === 'ready'
-            ? `Cloudy ${updateVersion ?? ''} is downloaded — it installs automatically when Cloudy quits.`
+            ? `Cloudy ${updateVersion ?? ''} is downloaded and ready to install.`
             : updatePhase === 'error'
               ? `Last check failed${updateError ? ` (${updateError})` : ''}${checkedLabel ? ` · ${checkedLabel}` : ''}`
               : updatePhase === 'current'
