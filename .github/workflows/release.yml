@@ -35,21 +35,52 @@ jobs:
       - name: Build renderer
         run: npm run build
 
+      - name: Configure code signing
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          AZURE_TRUSTED_SIGNING_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE }}
+          AZURE_TRUSTED_SIGNING_PUBLISHER: ${{ secrets.AZURE_TRUSTED_SIGNING_PUBLISHER }}
+        run: node scripts/azure-signing.mjs
+
       - name: Package installer
         shell: bash
         env:
           CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
-          if [ -z "$CSC_LINK" ]; then
+          if node -e "process.exit(require('./package.json').build.win.azureSignOptions ? 0 : 1)"; then
+            echo "::notice::Signing the installer with Azure Trusted Signing."
+            export CSC_IDENTITY_AUTO_DISCOVERY=true
+          elif [ -z "$CSC_LINK" ]; then
             echo "::notice::No Windows certificate configured - building an unsigned installer."
             # An empty CSC_LINK still counts as set and breaks the signing step.
             unset CSC_LINK CSC_KEY_PASSWORD
             export CSC_IDENTITY_AUTO_DISCOVERY=false
           else
-            echo "::notice::Signing the installer."
+            echo "::notice::Signing the installer with a PFX certificate."
           fi
           npx electron-builder --win nsis --publish never
+
+      - name: Verify signature
+        shell: pwsh
+        env:
+          SIGNING_CONFIGURED: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT != '' || secrets.WIN_CSC_LINK != '' }}
+        run: |
+          $exe = Get-ChildItem release/*.exe | Select-Object -First 1
+          if (-not $exe) { throw "No installer produced." }
+          $sig = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "$($exe.Name): $($sig.Status) $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') {
+            if ($env:SIGNING_CONFIGURED -eq 'true') { throw "Signing is configured but the installer is not signed." }
+            Write-Host "::notice::Unsigned installer - no signing certificate is configured."
+          }
 
       - uses: actions/upload-artifact@v4
         with:

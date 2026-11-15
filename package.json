@@ -23,7 +23,8 @@
     "electron:build:win": "tsc -b && vite build && electron-builder --win",
     "dist:win:signed": "node scripts/signed-build.mjs",
     "electron:build:linux": "tsc -b && vite build && electron-builder --linux",
-    "rebuild:native": "electron-rebuild -f -w better-sqlite3"
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "dist:win:azure": "node scripts/azure-signing.mjs && electron-builder --win nsis"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.5",

@@ -10,9 +10,41 @@ unsigned (with a notice in the log) when they are not.
 
 ## Windows
 
-You need an Authenticode certificate. An **OV** certificate works and is cheaper;
-**EV** certificates get SmartScreen reputation immediately, OV builds it over
-weeks. Azure Trusted Signing is a cheaper subscription alternative.
+You need an Authenticode certificate, from a CA or from Azure Trusted Signing.
+An **OV** certificate works and is cheaper; **EV** certificates get SmartScreen
+reputation immediately, OV builds it over weeks.
+
+### Azure Trusted Signing (no certificate file, ~10 €/month)
+
+Set these repository secrets and nothing else — the workflow's
+"Configure code signing" step writes `win.azureSignOptions` before packaging,
+and electron-builder signs `cloudy.exe` and the installer through Trusted
+Signing:
+
+| Secret | Value |
+| --- | --- |
+| `AZURE_TENANT_ID` | Entra ID tenant of the service principal |
+| `AZURE_CLIENT_ID` | service principal application ID |
+| `AZURE_CLIENT_SECRET` | service principal secret |
+| `AZURE_TRUSTED_SIGNING_ENDPOINT` | account endpoint, e.g. `https://eus.codesigning.azure.net/` |
+| `AZURE_TRUSTED_SIGNING_ACCOUNT` | Trusted Signing account name |
+| `AZURE_TRUSTED_SIGNING_PROFILE` | certificate profile name |
+| `AZURE_TRUSTED_SIGNING_PUBLISHER` | certificate subject, e.g. `CN=Your Name, O=Your Company, C=DE` |
+
+The service principal needs the *Trusted Signing Certificate Profile Signer*
+role on the account. Locally:
+
+```sh
+AZURE_TENANT_ID=… AZURE_CLIENT_ID=… AZURE_CLIENT_SECRET=… \
+AZURE_TRUSTED_SIGNING_ENDPOINT=… AZURE_TRUSTED_SIGNING_ACCOUNT=… \
+AZURE_TRUSTED_SIGNING_PROFILE=… AZURE_TRUSTED_SIGNING_PUBLISHER="CN=…" \
+  node scripts/azure-signing.mjs && npx electron-builder --win nsis
+```
+
+Both paths are optional: with no secrets the workflow builds an unsigned
+installer and says so in the log.
+
+### PFX certificate
 
 1. Export the certificate as a `.pfx` with its password.
 2. Base64-encode it:
