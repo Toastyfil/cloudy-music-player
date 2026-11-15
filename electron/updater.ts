@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { constants, createWriteStream } from 'node:fs';
+import { constants, createReadStream, createWriteStream } from 'node:fs';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -69,7 +70,7 @@ function isNewer(candidate: string, current: string) {
   return false;
 }
 
-function assetFor(assets: { name: string; browser_download_url: string; size?: number }[]) {
+function assetFor(assets: { name: string; browser_download_url: string; size?: number; digest?: string }[]) {
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
   const patterns =
     process.platform === 'win32'
@@ -103,7 +104,14 @@ function summarise(body?: string) {
   return text.slice(0, 3).join(' ').slice(0, 320);
 }
 
-async function download(url: string, name: string, expected?: number) {
+/** SHA-256 of a finished download, so a tampered or corrupted file is never run. */
+async function sha256(file: string) {
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
+  return hash.digest('hex');
+}
+
+async function download(url: string, name: string, expected?: number, digest?: string) {
   const directory = path.join(app.getPath('userData'), 'updates');
   await fs.mkdir(directory, { recursive: true });
   const target = path.join(directory, name);
@@ -143,6 +151,14 @@ async function download(url: string, name: string, expected?: number) {
   await pipeline(body, createWriteStream(target));
   const stat = await fs.stat(target);
   if (stat.size < 1024 * 1024) throw new Error('The downloaded installer looks incomplete');
+  if (digest?.startsWith('sha256:')) {
+    const expectedHash = digest.slice('sha256:'.length).toLowerCase();
+    const actual = await sha256(target);
+    if (actual !== expectedHash) {
+      await fs.rm(target, { force: true });
+      throw new Error('The update download did not match its published checksum');
+    }
+  }
   return target;
 }
 
@@ -243,7 +259,7 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
     const release = (await response.json()) as {
       tag_name?: string;
       body?: string;
-      assets?: { name: string; browser_download_url: string; size?: number }[];
+      assets?: { name: string; browser_download_url: string; size?: number; digest?: string }[];
     };
     const latest = (release.tag_name ?? '').replace(/^v/i, '');
     if (!latest) throw new Error('No published release found');
@@ -258,7 +274,12 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
 
     const notes = summarise(release.body);
     publish({ phase: 'downloading', version: latest, notes, progress: 0 });
-    const file = await download(asset.browser_download_url, asset.name, asset.size ? Number(asset.size) : undefined);
+    const file = await download(
+      asset.browser_download_url,
+      asset.name,
+      asset.size ? Number(asset.size) : undefined,
+      asset.digest,
+    );
     installerPath = file;
     if (process.platform === 'darwin' && file.endsWith('.zip')) stagedApp = await unpackMacApp(file);
     publish({
