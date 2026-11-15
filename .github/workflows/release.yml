@@ -154,6 +154,56 @@ jobs:
       - name: Show installers
         run: ls -lh dist
 
+      - name: Write release notes
+        env:
+          VERSION: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          (cd dist && sha256sum ./* | sed 's| \*\./|  |') > sums.txt
+          cat > release.md <<EOF
+          Cloudy plays music from four catalogs in one window — YouTube Music, SoundCloud, Deezer and Apple Music — merged into a single search, with no account and no ads. Everything runs on your machine: one player, one queue, one lyrics view.
+
+          ### Downloads
+
+          | Platform | File |
+          | --- | --- |
+          | Windows 10/11 (64-bit) | \`Cloudy-${VERSION}-setup.exe\` |
+          | macOS 11+ (Apple Silicon) | \`Cloudy-${VERSION}-arm64.dmg\` |
+          | macOS 11+ (Intel) | \`Cloudy-${VERSION}-x64.dmg\` |
+
+          ### Installing
+
+          **Windows** — run the installer and follow the prompts. It bundles \`yt-dlp\`, so playback works without any extra setup. The build is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**.
+
+          **macOS** — open the DMG and drag Cloudy into Applications. The build is not notarised, so Gatekeeper blocks the first launch: right-click the app and choose **Open**, or clear the quarantine flag once:
+
+          \`\`\`sh
+          xattr -dr com.apple.quarantine /Applications/Cloudy.app
+          \`\`\`
+
+          ### What's inside
+
+          - **One search, four catalogs.** Every row is labelled with its source and matched to the recording Cloudy plays, so an Apple Music or Deezer result is the track itself, not a link out.
+          - **Lyrics that follow the voice.** Syllable-timed karaoke sweep, readable spacing, dimmed backing vocals, and automatic per-track alignment from the audio itself — plus a manual offset and a per-line sync control.
+          - **Playback that respects the queue.** Gapless prefetch, fades instead of clicks, 10-band EQ, stereo pan, mono output, drive, delay, reverb, compression and loudness normalisation.
+          - **A real library.** Favourites for songs, artists and albums, your own playlists, playlist import from Spotify, Apple Music, YouTube, SoundCloud or Deezer, and play counts.
+          - **At home on both platforms.** Native window controls, a menu-bar or tray menu with transport controls, OS media keys, global shortcuts, Discord presence and \`cloudy://\` deep links.
+          - **21 palettes, 47 languages**, applied instantly.
+
+          ### Checksums (SHA-256)
+
+          \`\`\`
+          EOF
+          sed 's|^|  |' sums.txt >> release.md
+          printf '```\n\n' >> release.md
+          printf 'Requirements: Windows 10 or newer, or macOS 11 or newer. Internet is needed for the first play of a track; after that it is cached locally.\n\n' >> release.md
+          printf 'Documentation, build instructions and the MIT license: https://github.com/%s\n\n' "$REPO" >> release.md
+          printf 'Full changelog: https://github.com/%s/commits/%s\n' "$REPO" "$GITHUB_REF_NAME" >> release.md
+          echo '--- release notes ---'
+          cat release.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -161,5 +211,5 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Cloudy $GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file release.md \
             --verify-tag
