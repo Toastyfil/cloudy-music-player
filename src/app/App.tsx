@@ -15,7 +15,7 @@ import { useUiStore } from '@/features/navigation/store/uiStore';
 import { usePlayerStore, selectCurrentTrack } from '@/features/player/store/playerStore';
 import { useLyricsStore } from '@/features/lyrics/store/lyricsStore';
 import { prefetchLyrics } from '@/features/lyrics/api/lrclib';
-import { scheduleAutoAlign } from '@/features/lyrics/lib/autoAlign';
+import { applyPendingAlignment, scheduleAutoAlign } from '@/features/lyrics/lib/autoAlign';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useGlobalShortcuts } from '@/features/shortcuts/hooks/useGlobalShortcuts';
@@ -46,12 +46,22 @@ export function App() {
   useEffect(() => {
     if (track) void loadLyrics(track);
     else useLyricsStore.getState().reset();
+    // A correction measured after the intro is applied here, at the start of the
+    // track, instead of yanking the lyrics mid-song.
+    if (track) applyPendingAlignment(track.id);
     // A new track gets one background alignment attempt, cached afterwards.
     scheduleAutoAlign(track);
     const { queue, index } = usePlayerStore.getState();
     const upcoming = index >= 0 ? queue.slice(index + 1, index + 4) : queue.slice(0, 3);
     if (upcoming.length) void prefetchLyrics(upcoming);
   }, [track?.id, loadLyrics]);
+
+  // The pending correction usually cannot be applied at track switch, because
+  // that track's lyrics may still be loading. Apply it the moment they arrive.
+  const lyricsStatus = useLyricsStore((s) => s.status);
+  useEffect(() => {
+    if (track && lyricsStatus === 'synced') applyPendingAlignment(track.id);
+  }, [track?.id, lyricsStatus]);
 
   // Starting playback is the other moment a track becomes a candidate: a track
   // restored paused should still get its one alignment attempt when the user

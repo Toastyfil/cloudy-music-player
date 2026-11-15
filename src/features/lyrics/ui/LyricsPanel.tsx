@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Maximize2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import { autoAlignTrack } from '../lib/align';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { usePlayerStore, selectCurrentTrack } from '@/features/player/store/playerStore';
 import { audioEngine } from '@/features/player/engine/audioEngine';
@@ -39,9 +39,12 @@ const ActiveSyllables = memo(function ActiveSyllables({
   const storedPosition = usePlayerStore((s) => s.position);
   const performanceMode = useSettingsStore((s) => s.performanceMode);
   const tightness = useSettingsStore((s) => s.gradientTightness);
+  // Start from the audio clock, never the ~12 Hz store position: seeding from a
+  // stale value made the sweep jump backwards on the first frame of a new line.
   const [position, setPosition] = useState(() => {
     const state = usePlayerStore.getState();
-    return (state.playing ? audioEngine.currentTime : state.position) + sync;
+    const live = state.playing ? audioEngine.currentTime : state.position;
+    return (Number.isFinite(live) ? live : state.position) + sync;
   });
 
   useEffect(() => {
@@ -63,15 +66,6 @@ const ActiveSyllables = memo(function ActiveSyllables({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [playing, storedPosition, sync, performanceMode]);
-
-  const activeIndex = useMemo(() => {
-    let index = -1;
-    for (let i = 0; i < line.syllables.length; i++) {
-      if (line.syllables[i].time <= position) index = i;
-      else break;
-    }
-    return index;
-  }, [line, position]);
 
   const upcoming = onDark ? 'rgba(255,255,255,0.42)' : 'color-mix(in srgb, var(--text) 45%, transparent)';
   // The line breathes very slightly with the bass, so it feels sung rather than
@@ -107,13 +101,14 @@ const ActiveSyllables = memo(function ActiveSyllables({
           );
         }
 
-        if (performanceMode || local >= 0.999) {
+        // Performance mode trades the sweep for a flat two-tone fill.
+        if (performanceMode) {
           return (
             <span key={key}>
               {lead}
               <span
                 className={cn(
-                  'transition-colors duration-100 ease-linear',
+                  'transition-colors duration-150 ease-linear',
                   local >= 0.999 ? 'text-accent' : onDark ? 'text-white/42' : 'text-text/45',
                 )}
               >
@@ -125,15 +120,23 @@ const ActiveSyllables = memo(function ActiveSyllables({
         }
 
         // Karaoke sweep: the accent fills each word left→right at its own pace,
-        // with a soft gradient edge instead of a hard wipe.
+        // with a soft gradient edge instead of a hard wipe. A finished syllable
+        // stays on the same span at 100%, so the word never flips between two
+        // elements — that swap was what made the line flicker.
         const percent = Math.round(local * 100);
+        const edge = Math.min(100, percent + tightness);
+        const singing = local > 0 && local < 1;
         return (
           <span key={key}>
             {lead}
             <span
-              className={cn('inline-block transition-transform duration-100', index === activeIndex && 'scale-[1.04]')}
+              className={cn(
+                'inline-block will-change-transform',
+                singing ? 'scale-[1.03]' : 'scale-100',
+                'transition-transform duration-150 ease-out',
+              )}
               style={{
-                backgroundImage: `linear-gradient(90deg, var(--accent) ${percent}%, ${upcoming} ${Math.min(100, percent + tightness)}%)`,
+                backgroundImage: `linear-gradient(90deg, var(--accent) ${percent}%, ${upcoming} ${edge}%)`,
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',
@@ -406,7 +409,8 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
           transition:
             manual || instantScroll
               ? 'none'
-              : `transform ${Math.round(380 / lyricsSpeed)}ms cubic-bezier(0.25, 0.1, 0.25, 1)`,
+              : `transform ${Math.round(240 / lyricsSpeed)}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+          willChange: 'transform',
         }}
       >
       {lines.map((line, index) => {
@@ -456,8 +460,8 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
             }}
             onClick={() => line.text && setSelected(selected === index ? null : index)}
             className={cn(
-              'origin-left cursor-pointer tracking-[-0.01em] transition-[color,opacity,transform] duration-300 ease-out',
-              isActive ? 'font-semibold' : 'font-normal',
+              'origin-left cursor-pointer tracking-[-0.01em] transition-[color,opacity,transform,filter] duration-200 ease-out',
+              isActive ? 'font-semibold lyric-active' : 'font-normal',
               sizeClass,
               toneClass,
               isActive ? 'scale-100' : 'scale-[0.97]',

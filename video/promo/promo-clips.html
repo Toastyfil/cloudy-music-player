@@ -188,7 +188,13 @@ function seek(t) {
     const p = clamp((t - active.start) / (active.end - active.start));
     const idx = Math.min(active.frames - 1, Math.floor(p * active.frames));
     const src = `clips/${active.folder}/f${String(idx).padStart(4, '0')}.jpg`;
-    if (src !== lastSrc) { el('shot').src = src; lastSrc = src; }
+    if (src !== lastSrc) {
+      el('shot').src = src;
+      lastSrc = src;
+      // The fullscreen lyric view is deliberately dark; lift it for the promo.
+      el('shot').style.filter =
+        active.folder === 'lyrics' ? 'brightness(1.2) saturate(1.05) contrast(1.04)' : 'brightness(1.05) saturate(1.02)';
+    }
 
     const e = easeOut(seg(t, active.start - 0.06, active.start + 0.5));
     const cap = el(active.cap);

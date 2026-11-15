@@ -150,6 +150,12 @@ body {
 }
 
 /* Lyrics scroll away softly instead of being cut off mid-letter. */
+/* The line being sung carries a soft accent bloom, so the eye lands on it the
+   instant it becomes active without the text itself changing shape. */
+.lyric-active {
+  text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
 .lyrics-fade {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 64px), transparent);
   mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 64px), transparent);
