@@ -1,0 +1,520 @@
+import { create } from 'zustand';
+import { bridge } from '@/shared/api/bridge';
+import { DEFAULT_THEME_ID, findTheme, applyTheme, setWindowAlpha, type Theme } from '@/shared/config/themes';
+import { DEFAULT_LOCALE, type Locale } from '@/shared/config/locales';
+import { normalizeLocale, setLocale } from '@/shared/lib/i18n';
+import {
+  audioEngine,
+  DEFAULT_DSP,
+  EQ_FREQUENCIES,
+  EQ_RANGE_DB,
+  type DspSettings,
+} from '@/features/player/engine/audioEngine';
+
+const DSP_DEFAULTS: DspSettings = { ...DEFAULT_DSP };
+
+export const DSP_PRESETS: { id: string; label: string; dsp: DspSettings }[] = [
+  { id: 'clean', label: 'Clean', dsp: { ...DSP_DEFAULTS } },
+  {
+    id: 'warm',
+    label: 'Warm Tape',
+    dsp: { ...DSP_DEFAULTS, drive: 0.22, compressor: 0.35, reverbMix: 0.12, reverbSize: 0.35 },
+  },
+  {
+    id: 'night',
+    label: 'Night Drive',
+    dsp: {
+      ...DSP_DEFAULTS,
+      drive: 0.1,
+      delayMix: 0.26,
+      delayTime: 0.42,
+      delayFeedback: 0.36,
+      reverbMix: 0.22,
+      reverbSize: 0.6,
+      compressor: 0.4,
+    },
+  },
+  { id: 'room', label: 'Big Room', dsp: { ...DSP_DEFAULTS, reverbMix: 0.38, reverbSize: 0.85 } },
+  { id: 'squash', label: 'Loud & Tight', dsp: { ...DSP_DEFAULTS, compressor: 0.75, drive: 0.08 } },
+];
+
+function sanitizeDsp(value: unknown): DspSettings {
+  const raw = (value ?? {}) as Partial<Record<keyof DspSettings, unknown>>;
+  const unit = (input: unknown, fallback: number) => {
+    const number = Number(input);
+    return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
+  };
+  return {
+    drive: unit(raw.drive, DSP_DEFAULTS.drive),
+    delayMix: unit(raw.delayMix, DSP_DEFAULTS.delayMix),
+    delayTime: unit(raw.delayTime, DSP_DEFAULTS.delayTime),
+    delayFeedback: unit(raw.delayFeedback, DSP_DEFAULTS.delayFeedback),
+    reverbMix: unit(raw.reverbMix, DSP_DEFAULTS.reverbMix),
+    reverbSize: unit(raw.reverbSize, DSP_DEFAULTS.reverbSize),
+    compressor: unit(raw.compressor, DSP_DEFAULTS.compressor),
+    normalize: typeof raw.normalize === 'boolean' ? raw.normalize : DSP_DEFAULTS.normalize,
+  };
+}
+
+/** Gain in dB for each of the ten bands, low to high. */
+export interface EqPreset {
+  id: string;
+  label: string;
+  gains: number[];
+}
+
+export const EQ_PRESETS: EqPreset[] = [
+  { id: 'flat', label: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+  { id: 'bass', label: 'Bass Boost', gains: [8, 7, 5, 3, 1, 0, -1, -1, 0, 0] },
+  { id: 'vocal', label: 'Vocal Clarity', gains: [-2, -1, 0, 2, 4, 5, 4, 2, 1, 0] },
+  { id: 'electronic', label: 'Electronic', gains: [6, 5, 3, 0, -1, 0, 2, 4, 5, 4] },
+  { id: 'rock', label: 'Rock', gains: [5, 4, 2, 0, -1, -1, 2, 3, 4, 3] },
+];
+
+const FLAT_GAINS = EQ_FREQUENCIES.map(() => 0);
+
+/** 32 → “32”, 1000 → “1k”, 16000 → “16k”. */
+export function bandLabel(frequency: number) {
+  return frequency >= 1000 ? `${frequency / 1000}k` : String(frequency);
+}
+
+function sanitizeGains(value: unknown): number[] {
+  const list = Array.isArray(value) ? value : [];
+  return EQ_FREQUENCIES.map((_, index) => {
+    const gain = Number(list[index]);
+    if (!Number.isFinite(gain)) return 0;
+    return Math.max(-EQ_RANGE_DB, Math.min(EQ_RANGE_DB, gain));
+  });
+}
+
+export type ShortcutAction =
+  | 'playPause'
+  | 'seekForward'
+  | 'seekBackward'
+  | 'next'
+  | 'previous'
+  | 'lyrics'
+  | 'queue'
+  | 'fullscreen'
+  | 'volumeUp'
+  | 'volumeDown'
+  | 'search'
+  | 'back';
+
+export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
+  playPause: 'Play / Pause',
+  seekForward: 'Seek forward 5s',
+  seekBackward: 'Seek back 5s',
+  next: 'Next track',
+  previous: 'Previous track',
+  lyrics: 'Toggle lyrics',
+  queue: 'Toggle queue',
+  fullscreen: 'Fullscreen lyrics',
+  volumeUp: 'Volume up',
+  volumeDown: 'Volume down',
+  search: 'Focus search',
+  back: 'Back / close',
+};
+
+export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
+  playPause: 'Space',
+  seekForward: 'ArrowRight',
+  seekBackward: 'ArrowLeft',
+  next: 'KeyN',
+  previous: 'KeyP',
+  lyrics: 'KeyL',
+  queue: 'KeyQ',
+  fullscreen: 'KeyF',
+  volumeUp: 'ArrowUp',
+  volumeDown: 'ArrowDown',
+  search: 'Ctrl+KeyF',
+  back: 'Escape',
+};
+
+interface SettingsState {
+  themeId: string;
+  discordEnabled: boolean;
+  cacheEnabled: boolean;
+  audioQuality: 'high' | 'medium';
+  lyricsOffset: number;
+  windowTransparent: boolean;
+  windowOpacity: number;
+  locale: Locale;
+  shortcuts: Record<ShortcutAction, string>;
+  /** Ten bands, dB each. */
+  eqGains: number[];
+  eqPreset: string;
+  preampDb: number;
+  tempo: number;
+  /** Tint the whole UI from the current cover's dominant hue. */
+  dynamicColor: boolean;
+  /** −1 left … 1 right. */
+  pan: number;
+  mono: boolean;
+  /** Which home mark is drawn in the title bar and empty screens. */
+  logoVariant: string;
+  /** Bass-reactive wavy progress ring around the cover. */
+  waveRing: boolean;
+  /** Cheap mode: no wave motion, reduced visualiser work. */
+  performanceMode: boolean;
+  /** 0.5 = half speed, 1 = normal, 2.5 = fast. Scales lyric scroll and karaoke. */
+  lyricsSpeed: number;
+  /** Feather width of the karaoke sweep, in percent of the word (2 sharp – 24 soft). */
+  gradientTightness: number;
+  /** Multiplier for spectrum bar heights, 0.5 – 2. */
+  visualizerSensitivity: number;
+  /** 0 = snappy bars, 1 = long smooth tails. */
+  visualizerSmoothness: number;
+  dsp: DspSettings;
+  dspPreset: string;
+  dspPresets: Record<string, DspSettings>;
+  /** Fade length for play/pause, 0 disables it. */
+  fadeMs: number;
+  loaded: boolean;
+  load: () => Promise<void>;
+  setTheme: (id: string) => void;
+  currentTheme: () => Theme;
+  setDiscord: (enabled: boolean) => void;
+  setCacheEnabled: (enabled: boolean) => void;
+  setAudioQuality: (quality: 'high' | 'medium') => void;
+  setLyricsOffset: (offset: number) => void;
+  setWindowTransparent: (enabled: boolean) => void;
+  setWindowOpacity: (opacity: number) => void;
+  setLocale: (locale: Locale) => void;
+  setShortcut: (action: ShortcutAction, keys: string) => void;
+  resetShortcuts: () => void;
+  setEqBand: (index: number, gain: number) => void;
+  applyEqPreset: (id: string) => void;
+  setPreamp: (db: number) => void;
+  setTempo: (rate: number) => void;
+  setDynamicColor: (on: boolean) => void;
+  setPan: (value: number) => void;
+  setMono: (on: boolean) => void;
+  setLogoVariant: (variant: string) => void;
+  setWaveRing: (on: boolean) => void;
+  setPerformanceMode: (on: boolean) => void;
+  setLyricsSpeed: (speed: number) => void;
+  setGradientTightness: (percent: number) => void;
+  setVisualizerSensitivity: (value: number) => void;
+  setVisualizerSmoothness: (value: number) => void;
+  setDsp: (next: Partial<DspSettings>) => void;
+  applyDspPreset: (id: string) => void;
+  saveDspPreset: (name: string) => void;
+  deleteDspPreset: (name: string) => void;
+  setFadeMs: (ms: number) => void;
+  resetAudio: () => void;
+}
+
+const persistKey = (key: string, value: unknown) => {
+  void bridge().settings.set(key, value).catch(() => undefined);
+};
+
+export const useSettingsStore = create<SettingsState>((set, get) => ({
+  themeId: DEFAULT_THEME_ID,
+  discordEnabled: true,
+  cacheEnabled: true,
+  audioQuality: 'high',
+  lyricsOffset: 0,
+  windowTransparent: false,
+  windowOpacity: 0.9,
+  locale: DEFAULT_LOCALE,
+  shortcuts: { ...DEFAULT_SHORTCUTS },
+  eqGains: [...FLAT_GAINS],
+  eqPreset: 'flat',
+  preampDb: 0,
+  tempo: 1,
+  dynamicColor: true,
+  pan: 0,
+  mono: false,
+  logoVariant: 'cloud',
+  waveRing: true,
+  performanceMode: false,
+  lyricsSpeed: 1,
+  gradientTightness: 12,
+  visualizerSensitivity: 1,
+  visualizerSmoothness: 0.5,
+  dsp: { ...DSP_DEFAULTS },
+  dspPreset: 'clean',
+  dspPresets: {},
+  fadeMs: 0,
+  loaded: false,
+
+  async load() {
+    try {
+      const stored = (await bridge().settings.all()) as Record<string, unknown>;
+      const next: Partial<SettingsState> = {};
+      if (typeof stored.themeId === 'string') next.themeId = findTheme(stored.themeId).id;
+      // Migrate the old dark/light preference.
+      else if (stored.theme === 'light') next.themeId = 'daylight';
+      if (typeof stored.discordEnabled === 'boolean') next.discordEnabled = stored.discordEnabled;
+      if (typeof stored.cacheEnabled === 'boolean') next.cacheEnabled = stored.cacheEnabled;
+      if (stored.audioQuality === 'high' || stored.audioQuality === 'medium') next.audioQuality = stored.audioQuality;
+      if (typeof stored.lyricsOffset === 'number') next.lyricsOffset = stored.lyricsOffset;
+      if (typeof stored.windowTransparent === 'boolean') next.windowTransparent = stored.windowTransparent;
+      if (typeof stored.windowOpacity === 'number') next.windowOpacity = stored.windowOpacity;
+      if (typeof stored.locale === 'string') next.locale = normalizeLocale(stored.locale);
+      if (stored.shortcuts && typeof stored.shortcuts === 'object') {
+        next.shortcuts = { ...DEFAULT_SHORTCUTS, ...(stored.shortcuts as Record<ShortcutAction, string>) };
+      }
+      if (stored.eqGains) {
+        next.eqGains = sanitizeGains(stored.eqGains);
+        next.eqPreset = typeof stored.eqPreset === 'string' ? stored.eqPreset : 'custom';
+      }
+      if (typeof stored.preampDb === 'number') next.preampDb = stored.preampDb;
+      if (typeof stored.tempo === 'number') next.tempo = Math.min(2, Math.max(0.5, stored.tempo));
+      if (typeof stored.dynamicColor === 'boolean') next.dynamicColor = stored.dynamicColor;
+      if (typeof stored.logoVariant === 'string') next.logoVariant = stored.logoVariant;
+      if (typeof stored.pan === 'number') next.pan = Math.max(-1, Math.min(1, stored.pan));
+      if (typeof stored.mono === 'boolean') next.mono = stored.mono;
+      if (typeof stored.waveRing === 'boolean') next.waveRing = stored.waveRing;
+      if (typeof stored.performanceMode === 'boolean') next.performanceMode = stored.performanceMode;
+      if (typeof stored.lyricsSpeed === 'number') next.lyricsSpeed = stored.lyricsSpeed;
+      if (typeof stored.gradientTightness === 'number')
+        next.gradientTightness = Math.max(2, Math.min(24, stored.gradientTightness));
+      if (typeof stored.visualizerSensitivity === 'number')
+        next.visualizerSensitivity = Math.max(0.5, Math.min(2, stored.visualizerSensitivity));
+      if (typeof stored.visualizerSmoothness === 'number')
+        next.visualizerSmoothness = Math.max(0, Math.min(1, stored.visualizerSmoothness));
+      if (stored.dsp) {
+        next.dsp = sanitizeDsp(stored.dsp);
+        next.dspPreset = typeof stored.dspPreset === 'string' ? stored.dspPreset : 'custom';
+      }
+      if (stored.dspPresets && typeof stored.dspPresets === 'object') {
+        const presets: Record<string, DspSettings> = {};
+        for (const [name, value] of Object.entries(stored.dspPresets as Record<string, unknown>)) {
+          presets[name] = sanitizeDsp(value);
+        }
+        next.dspPresets = presets;
+      }
+      if (typeof stored.fadeMs === 'number') next.fadeMs = Math.max(0, Math.min(2000, stored.fadeMs));
+      set({ ...next, loaded: true });
+      // The engine keeps its own copy, so these survive until the audio graph
+      // is built on the first play.
+      audioEngine.setEq(next.eqGains ?? get().eqGains);
+      audioEngine.setPreampDb(next.preampDb ?? get().preampDb);
+      audioEngine.setTempo(next.tempo ?? get().tempo);
+      audioEngine.setDsp(next.dsp ?? get().dsp);
+      audioEngine.setPan(next.pan ?? get().pan);
+      audioEngine.setMono(next.mono ?? get().mono);
+      setLocale(next.locale ?? get().locale);
+      const transparent = next.windowTransparent ?? get().windowTransparent;
+      setWindowAlpha(transparent ? (next.windowOpacity ?? get().windowOpacity) : 1);
+      applyTheme(findTheme(next.themeId ?? get().themeId));
+      void bridge().presence.setEnabled(next.discordEnabled ?? get().discordEnabled);
+    } catch {
+      set({ loaded: true });
+      applyTheme(findTheme(get().themeId));
+    }
+  },
+
+  setTheme(id) {
+    const theme = findTheme(id);
+    applyTheme(theme);
+    set({ themeId: theme.id });
+    persistKey('themeId', theme.id);
+  },
+
+  currentTheme() {
+    return findTheme(get().themeId);
+  },
+
+  setDiscord(enabled) {
+    set({ discordEnabled: enabled });
+    persistKey('discordEnabled', enabled);
+    void bridge().presence.setEnabled(enabled);
+  },
+
+  setCacheEnabled(enabled) {
+    set({ cacheEnabled: enabled });
+    persistKey('cacheEnabled', enabled);
+  },
+
+  setAudioQuality(quality) {
+    set({ audioQuality: quality });
+    persistKey('audioQuality', quality);
+  },
+
+  setLyricsOffset(offset) {
+    set({ lyricsOffset: offset });
+    persistKey('lyricsOffset', offset);
+  },
+
+  /** The Electron main process rebuilds the window so the flag can take effect. */
+  setWindowTransparent(enabled) {
+    set({ windowTransparent: enabled });
+    setWindowAlpha(enabled ? get().windowOpacity : 1);
+    persistKey('windowTransparent', enabled);
+  },
+
+  setWindowOpacity(opacity) {
+    const value = Math.min(1, Math.max(0.35, opacity));
+    set({ windowOpacity: value });
+    if (get().windowTransparent) setWindowAlpha(value);
+    persistKey('windowOpacity', value);
+  },
+
+  setLocale(locale) {
+    const value = normalizeLocale(locale);
+    set({ locale: value });
+    setLocale(value);
+    persistKey('locale', value);
+  },
+
+  setShortcut(action, keys) {
+    const shortcuts = { ...get().shortcuts, [action]: keys };
+    set({ shortcuts });
+    persistKey('shortcuts', shortcuts);
+  },
+
+  resetShortcuts() {
+    const shortcuts = { ...DEFAULT_SHORTCUTS };
+    set({ shortcuts });
+    persistKey('shortcuts', shortcuts);
+  },
+
+  setEqBand(index, gain) {
+    const value = Math.max(-EQ_RANGE_DB, Math.min(EQ_RANGE_DB, Math.round(gain * 10) / 10));
+    const eqGains = get().eqGains.map((current, band) => (band === index ? value : current));
+    audioEngine.setEq(eqGains);
+    set({ eqGains, eqPreset: 'custom' });
+    persistKey('eqGains', eqGains);
+    persistKey('eqPreset', 'custom');
+  },
+
+  applyEqPreset(id) {
+    const preset = EQ_PRESETS.find((entry) => entry.id === id) ?? EQ_PRESETS[0];
+    const eqGains = [...preset.gains];
+    audioEngine.setEq(eqGains);
+    set({ eqGains, eqPreset: preset.id });
+    persistKey('eqGains', eqGains);
+    persistKey('eqPreset', preset.id);
+  },
+
+  setPreamp(db) {
+    const value = Math.max(-12, Math.min(12, Math.round(db * 10) / 10));
+    audioEngine.setPreampDb(value);
+    set({ preampDb: value });
+    persistKey('preampDb', value);
+  },
+
+  setDynamicColor(on) {
+    set({ dynamicColor: on });
+    persistKey('dynamicColor', on);
+  },
+
+  setPan(value) {
+    const pan = Math.max(-1, Math.min(1, Math.round(value * 100) / 100));
+    audioEngine.setPan(pan);
+    set({ pan });
+    persistKey('pan', pan);
+  },
+
+  setMono(on) {
+    audioEngine.setMono(on);
+    set({ mono: on });
+    persistKey('mono', on);
+  },
+
+  setLogoVariant(variant) {
+    set({ logoVariant: variant });
+    persistKey('logoVariant', variant);
+  },
+
+  setWaveRing(on) {
+    set({ waveRing: on });
+    persistKey('waveRing', on);
+  },
+
+  setPerformanceMode(on) {
+    set({ performanceMode: on });
+    persistKey('performanceMode', on);
+  },
+
+  setLyricsSpeed(speed) {
+    const value = speed <= 0.75 ? 0.5 : speed >= 1.75 ? 2.5 : 1;
+    set({ lyricsSpeed: value });
+    persistKey('lyricsSpeed', value);
+  },
+
+  setGradientTightness(percent) {
+    const value = Math.round(Math.max(2, Math.min(24, percent)));
+    set({ gradientTightness: value });
+    persistKey('gradientTightness', value);
+  },
+
+  setVisualizerSensitivity(value) {
+    const next = Math.round(Math.max(0.5, Math.min(2, value)) * 10) / 10;
+    set({ visualizerSensitivity: next });
+    persistKey('visualizerSensitivity', next);
+  },
+
+  setVisualizerSmoothness(value) {
+    const next = Math.round(Math.max(0, Math.min(1, value)) * 100) / 100;
+    set({ visualizerSmoothness: next });
+    persistKey('visualizerSmoothness', next);
+  },
+
+  setDsp(next) {
+    const dsp = sanitizeDsp({ ...get().dsp, ...next });
+    audioEngine.setDsp(dsp);
+    set({ dsp, dspPreset: 'custom' });
+    persistKey('dsp', dsp);
+    persistKey('dspPreset', 'custom');
+  },
+
+  applyDspPreset(id) {
+    const builtIn = DSP_PRESETS.find((preset) => preset.id === id);
+    const saved = get().dspPresets[id];
+    const dsp = sanitizeDsp(builtIn?.dsp ?? saved ?? DSP_DEFAULTS);
+    audioEngine.setDsp(dsp);
+    set({ dsp, dspPreset: id });
+    persistKey('dsp', dsp);
+    persistKey('dspPreset', id);
+  },
+
+  saveDspPreset(name) {
+    const label = name.trim().slice(0, 40);
+    if (!label) return;
+    const dspPresets = { ...get().dspPresets, [label]: { ...get().dsp } };
+    set({ dspPresets, dspPreset: label });
+    persistKey('dspPresets', dspPresets);
+    persistKey('dspPreset', label);
+  },
+
+  deleteDspPreset(name) {
+    const rest = { ...get().dspPresets };
+    delete rest[name];
+    set({ dspPresets: rest });
+    persistKey('dspPresets', rest);
+  },
+
+  setFadeMs(ms) {
+    const value = Math.max(0, Math.min(2000, Math.round(ms / 50) * 50));
+    set({ fadeMs: value });
+    persistKey('fadeMs', value);
+  },
+
+  setTempo(rate) {
+    const value = Math.max(0.5, Math.min(2, Math.round(rate * 100) / 100));
+    audioEngine.setTempo(value);
+    set({ tempo: value });
+    persistKey('tempo', value);
+  },
+
+  resetAudio() {
+    const eqGains = [...FLAT_GAINS];
+    const dsp = { ...DSP_DEFAULTS };
+    audioEngine.setEq(eqGains);
+    audioEngine.setPreampDb(0);
+    audioEngine.setTempo(1);
+    audioEngine.setDsp(dsp);
+    set({ eqGains, eqPreset: 'flat', preampDb: 0, tempo: 1, dsp, dspPreset: 'clean', fadeMs: 0 });
+    persistKey('dsp', dsp);
+    persistKey('dspPreset', 'clean');
+    persistKey('fadeMs', 0);
+    persistKey('eqGains', eqGains);
+    persistKey('eqPreset', 'flat');
+    persistKey('preampDb', 0);
+    persistKey('tempo', 1);
+  },
+}));

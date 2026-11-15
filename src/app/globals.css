@@ -1,0 +1,259 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
+
+/* Tokens ------------------------------------------------------------------ */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  /* Graphite is the built-in start theme, so the very first paint already
+     matches it and no other palette flashes before settings load. */
+  --bg: #0b0c0e;
+  --bg-elevated: #121212;
+  --surface: #16181c;
+  --surface-hover: #1f1f1f;
+  --surface-active: #262626;
+  --text: #f0f0f0;
+  --text-muted: #8a8a8a;
+  --text-faint: #5c5c5c;
+  --accent: #94a3b8;
+  --accent-soft: rgba(148, 163, 184, 0.16);
+  --accent-strong: #cbd5e1;
+  --border: rgba(255, 255, 255, 0.06);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --scrollbar: rgba(255, 255, 255, 0.14);
+  /* Slider rail: visible against both #0b0c0e and #121212. */
+  --track: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #fafafa;
+  --bg-elevated: #ffffff;
+  --surface: #f1f1f1;
+  --surface-hover: #e9e9e9;
+  --surface-active: #e0e0e0;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9a9a9a;
+  --accent: #d97706;
+  --accent-soft: rgba(217, 119, 6, 0.12);
+  --accent-strong: #b45309;
+  --border: rgba(0, 0, 0, 0.07);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  --scrollbar: rgba(0, 0, 0, 0.18);
+  --track: rgba(0, 0, 0, 0.14);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-line: var(--border);
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-card: 12px;
+  --radius-xl2: 18px;
+}
+
+/* Base -------------------------------------------------------------------- */
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+/* Keep the resets in the base layer: unlayered rules outrank every Tailwind
+   utility, which would silently discard colours like `text-black` on buttons. */
+@layer base {
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  input {
+    font: inherit;
+    color: inherit;
+    user-select: text;
+  }
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Scrollbars stay out of the way until hovered. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  background-clip: content-box;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+.drag {
+  -webkit-app-region: drag;
+}
+
+/* Utility ---------------------------------------------------------------- */
+@utility text-balance-tight {
+  text-wrap: balance;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.marquee-mask {
+  mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent);
+}
+
+/* Lyrics scroll away softly instead of being cut off mid-letter. */
+.lyrics-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 64px), transparent);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 64px), transparent);
+}
+
+/* Sliders ----------------------------------------------------------------- */
+/* The native appearance is stripped so the rail and thumb follow the theme;
+   without these rules an unstyled range input shows only Chrome's blue dot. */
+.cloudy-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--track);
+  outline: none;
+}
+
+.cloudy-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid var(--bg-elevated);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.cloudy-range:hover::-webkit-slider-thumb,
+.cloudy-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+
+.cloudy-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid var(--bg-elevated);
+  cursor: pointer;
+}
+
+.cloudy-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.cloudy-range:disabled {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Micro-motion for the Cloudy icon set. Transform/opacity only. */
+@keyframes cloudy-scan {
+  0%, 100% { transform: translateY(-3px); opacity: 0.2; }
+  50% { transform: translateY(3px); opacity: 0.85; }
+}
+.animate-scan { animation: cloudy-scan 2.8s ease-in-out infinite; }
+
+@keyframes cloudy-shuffle {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.78); }
+}
+.animate-shuffle-drift { animation: cloudy-shuffle 2.2s ease-in-out infinite; }
+
+@keyframes cloudy-repeat-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.55; }
+}
+.animate-repeat-pulse { animation: cloudy-repeat-pulse 1.4s ease-in-out infinite; transform-origin: 12px 12px; }
+
+@keyframes cloudy-eq {
+  0%, 100% { transform: scaleY(0.45); }
+  50% { transform: scaleY(1); }
+}
+.animate-eq { animation: cloudy-eq 0.9s ease-in-out infinite; }
+
+@keyframes cloudy-queue {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1.1px); }
+}
+.animate-queue-wave { animation: cloudy-queue 1.6s ease-in-out infinite; }
+
+@keyframes cloudy-heart-pop {
+  0% { transform: scale(1); }
+  38% { transform: scale(1.32); }
+  70% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+.animate-heart-pop { animation: cloudy-heart-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes cloudy-particle {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0.95; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.1); opacity: 0; }
+}
+.animate-heart-particle { animation: cloudy-particle 460ms ease-out forwards; }

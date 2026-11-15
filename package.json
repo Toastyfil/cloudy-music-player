@@ -1,0 +1,130 @@
+{
+  "name": "cloudy",
+  "productName": "Cloudy",
+  "version": "1.0.0",
+  "description": "Cloudy — a desktop music player. Head in the clouds.",
+  "author": "Cloudy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Toastyfil/cloudy-music-player.git"
+  },
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "desktopName": "cloudy",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false",
+    "electron:dev": "vite",
+    "electron:build": "tsc -b && vite build && electron-builder",
+    "electron:build:win": "tsc -b && vite build && electron-builder --win",
+    "dist:win:signed": "node scripts/signed-build.mjs",
+    "electron:build:linux": "tsc -b && vite build && electron-builder --linux",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.5",
+    "better-sqlite3": "^12.6.0",
+    "clsx": "^2.1.1",
+    "discord-rpc": "^4.0.1",
+    "framer-motion": "^12.23.12",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.7.1",
+    "tailwind-merge": "^3.3.1",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "electron": "^37.2.4",
+    "electron-builder": "^26.0.12",
+    "electron-rebuild": "^3.2.9",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.5",
+    "vite-plugin-electron": "^0.29.0"
+  },
+  "build": {
+    "appId": "app.cloudy.player",
+    "productName": "Cloudy",
+    "executableName": "cloudy",
+    "artifactName": "Cloudy-${version}-setup.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "server/**/*",
+      "server/node_modules/**/*",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/discord-rpc/**/*",
+      "!**/*.map"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/main.js"
+    },
+    "protocols": [
+      {
+        "name": "Cloudy",
+        "schemes": [
+          "cloudy"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio",
+      "icon": "build/icons"
+    },
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg"
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "asarUnpack": [
+      "server/**/*",
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "allowScripts": {
+    "electron@37.10.3": true,
+    "esbuild@0.28.2": true,
+    "lzma-native@8.0.6": true,
+    "electron-winstaller@5.4.0": true,
+    "better-sqlite3@12.6.0": true
+  }
+}

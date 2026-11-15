@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Bundle yt-dlp
+        shell: bash
+        run: |
+          mkdir -p bin
+          curl -L --fail --silent --show-error \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe \
+            -o bin/yt-dlp.exe
+          ./bin/yt-dlp.exe --version
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package installer
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then
+            echo "::notice::No Windows certificate configured - building an unsigned installer."
+            # An empty CSC_LINK still counts as set and breaks the signing step.
+            unset CSC_LINK CSC_KEY_PASSWORD
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          else
+            echo "::notice::Signing the installer."
+          fi
+          npx electron-builder --win nsis --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    name: macOS DMG (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Bundle yt-dlp
+        run: |
+          mkdir -p bin
+          curl -L --fail --silent --show-error \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos \
+            -o bin/yt-dlp
+          chmod +x bin/yt-dlp
+          ./bin/yt-dlp --version
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package DMG
+        # Developer ID signing + notarization happen when the Apple secrets are
+        # set; without them the DMG is unsigned rather than failed.
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then
+            echo "::notice::No Apple certificate configured - building an unsigned DMG."
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          else
+            echo "::notice::Signing with a Developer ID certificate and notarizing."
+            export CSC_IDENTITY_AUTO_DISCOVERY=true
+          fi
+          npx electron-builder --mac --${{ matrix.arch }} --publish never
+
+      - name: Verify signature and notarization
+        env:
+          SIGNED: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          NOTARIZED: ${{ secrets.APPLE_ID != '' }}
+        run: |
+          if [ "$SIGNED" != "true" ]; then
+            echo "::notice::Unsigned build - nothing to verify."
+            exit 0
+          fi
+          APP=$(find release -maxdepth 2 -name "Cloudy.app" -type d | head -1)
+          echo "Checking $APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Timestamp"
+          if [ "$NOTARIZED" = "true" ]; then
+            spctl --assess --type execute --verbose=4 "$APP"
+          else
+            spctl --assess --type execute --verbose=4 "$APP" || echo "::warning::Signed but not notarized - add the Apple ID secrets to clear Gatekeeper."
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudy-macos-${{ matrix.arch }}
+          path: release/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish release
+    # Only a version tag publishes; a manual run just builds the installers.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Show installers
+        run: ls -lh dist
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Cloudy $GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

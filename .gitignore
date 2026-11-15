@@ -1,0 +1,37 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.cloudy-audio/
+*.log
+.DS_Store
+Thumbs.db
+*.db
+*.db-shm
+*.db-wal
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Code signing certificates (never commit private keys)
+certificates/
+*.pfx
+
+# Bundled yt-dlp binaries (downloaded at build time)
+bin/yt-dlp
+bin/yt-dlp.exe
+
+# Local media/design scratch work, never part of the app
+artifacts/
+video/shots/
+video/ref/
+video/frames/
+video/.tools/
+
+# Temporary device-flow login token
+scripts/.gh-device-token
+
+# Local test artifacts (documentation images in docs/ are tracked)
+/screenshots/
