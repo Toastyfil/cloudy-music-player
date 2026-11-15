@@ -1,7 +1,7 @@
 {
   "name": "cloudy",
   "productName": "Cloudy",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Cloudy — a desktop music player. Head in the clouds.",
   "author": "Cloudy",
   "license": "MIT",
@@ -102,7 +102,8 @@
     "mac": {
       "category": "public.app-category.music",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },

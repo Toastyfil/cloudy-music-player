@@ -1,9 +1,14 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { createWriteStream } from 'node:fs';
+import { constants, createWriteStream } from 'node:fs';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const run = promisify(execFile);
 
 /**
  * In-app updates.
@@ -36,6 +41,8 @@ export interface UpdateState {
 
 let state: UpdateState = { phase: 'idle' };
 let installerPath: string | null = null;
+/** macOS only: the new bundle, unpacked from the release zip and ready to swap in. */
+let stagedApp: string | null = null;
 let timer: NodeJS.Timeout | null = null;
 let checking = false;
 
@@ -66,7 +73,14 @@ function assetFor(assets: { name: string; browser_download_url: string; size?: n
     process.platform === 'win32'
       ? [/setup\.exe$/i]
       : process.platform === 'darwin'
-        ? [new RegExp(`-${arch}\\.dmg$`, 'i'), /\.dmg$/i]
+        ? [
+            // The zip is the whole .app bundle, which is what lets Cloudy swap
+            // itself in place without the user dragging anything.
+            new RegExp(`-${arch}\\.zip$`, 'i'),
+            /-(arm64|x64)\.zip$/i,
+            new RegExp(`-${arch}\\.dmg$`, 'i'),
+            /\.dmg$/i,
+          ]
         : [/\.AppImage$/i];
   for (const pattern of patterns) {
     const match = assets.find((asset) => pattern.test(asset.name));
@@ -130,6 +144,89 @@ async function download(url: string, name: string, expected?: number) {
   return target;
 }
 
+/** The .app bundle this process runs from (`…/Cloudy.app`). */
+function currentBundle() {
+  return path.resolve(process.execPath, '../../..');
+}
+
+/** Unzips the release bundle into a staging folder so the swap is just a copy. */
+async function unpackMacApp(zip: string) {
+  const staging = path.join(app.getPath('userData'), 'updates', 'staging');
+  await fs.rm(staging, { recursive: true, force: true });
+  await fs.mkdir(staging, { recursive: true });
+  await run('ditto', ['-x', '-k', zip, staging]);
+  const bundle = (await fs.readdir(staging)).find((entry) => entry.endsWith('.app'));
+  if (!bundle) throw new Error('The update package has no app bundle');
+  return path.join(staging, bundle);
+}
+
+const MAC_SWAP_SCRIPT = `#!/bin/sh
+PID="$1"; SRC="$2"; DEST="$3"
+while kill -0 "$PID" 2>/dev/null; do sleep 0.4; done
+sleep 1
+rm -rf "$DEST.cloudy-old"
+mv "$DEST" "$DEST.cloudy-old" || exit 1
+if ditto "$SRC" "$DEST"; then
+  rm -rf "$DEST.cloudy-old"
+else
+  rm -rf "$DEST"
+  mv "$DEST.cloudy-old" "$DEST"
+  exit 1
+fi
+xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
+open "$DEST"
+`;
+
+/** Single-quotes a path for the shell (release paths never contain a quote). */
+function shellPath(value: string) {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * macOS has no silent installer: the only real in-place update is replacing the
+ * .app bundle and reopening it. A detached script waits for this process to
+ * exit, copies the staged bundle over the old one and relaunches Cloudy. A drag
+ * install in /Applications is root-owned, so that case escalates once.
+ */
+async function installOnMac() {
+  const target = currentBundle();
+  if (stagedApp) {
+    const { spawn } = await import('node:child_process');
+    const writable = await fs.access(target, constants.W_OK).then(
+      () => true,
+      () => false,
+    );
+    if (writable) {
+      const script = path.join(os.tmpdir(), `cloudy-update-${Date.now()}.sh`);
+      await fs.writeFile(script, MAC_SWAP_SCRIPT, { mode: 0o755 });
+      spawn('/bin/sh', [script, String(process.pid), stagedApp, target], { detached: true, stdio: 'ignore' }).unref();
+    } else {
+      const owner = `${process.getuid?.() ?? 501}:${process.getgid?.() ?? 20}`;
+      const commands = [
+        `rm -rf ${shellPath(target)}`,
+        `ditto ${shellPath(stagedApp)} ${shellPath(target)}`,
+        `chown -R ${owner} ${shellPath(target)}`,
+        `xattr -dr com.apple.quarantine ${shellPath(target)} 2>/dev/null || true`,
+      ].join('; ');
+      const apple = `do shell script "${commands.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" with administrator privileges`;
+      spawn('/usr/bin/osascript', ['-e', apple, '-e', `do shell script "open ${shellPath(target)}"`], {
+        detached: true,
+        stdio: 'ignore',
+      }).unref();
+    }
+    setTimeout(() => app.quit(), 400);
+    return { ok: true };
+  }
+  // Releases before 1.1.2 shipped only a DMG, so those still open in Finder.
+  if (installerPath?.endsWith('.dmg')) {
+    await shell.openPath(installerPath);
+    shell.showItemInFolder(installerPath);
+    publish({ ...state, phase: 'ready' });
+    return { ok: true };
+  }
+  return { ok: false, error: 'No macOS update package was downloaded' };
+}
+
 export async function checkForUpdates(options: { quiet?: boolean } = {}) {
   if (checking) return state;
   if (!app.isPackaged) return state;
@@ -161,6 +258,7 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
     publish({ phase: 'downloading', version: latest, notes, progress: 0 });
     const file = await download(asset.browser_download_url, asset.name, asset.size ? Number(asset.size) : undefined);
     installerPath = file;
+    if (process.platform === 'darwin' && file.endsWith('.zip')) stagedApp = await unpackMacApp(file);
     publish({
       phase: 'ready',
       version: latest,
@@ -189,13 +287,7 @@ async function install() {
       setTimeout(() => app.quit(), 400);
       return { ok: true };
     }
-    if (process.platform === 'darwin') {
-      // An unsigned DMG cannot self-replace, so mount it and finish in Finder.
-      await shell.openPath(installerPath);
-      shell.showItemInFolder(installerPath);
-      publish({ ...state, phase: 'ready' });
-      return { ok: true };
-    }
+    if (process.platform === 'darwin') return await installOnMac();
     await shell.openPath(installerPath);
     return { ok: true };
   } catch (error) {
