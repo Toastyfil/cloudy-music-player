@@ -2,6 +2,10 @@
 
 **Head in the clouds.** A desktop music player that searches YouTube Music, SoundCloud, Deezer and Apple Music at once — no account, no ads, no recommendation feed, no telemetry.
 
+[![Cloudy in 25 seconds — click to watch with sound](docs/cloudy-promo.gif)](https://github.com/Toastyfil/cloudy-music-player/raw/main/docs/cloudy-promo.mp4)
+
+<p align="center"><sub>25-second tour — <a href="https://github.com/Toastyfil/cloudy-music-player/raw/main/docs/cloudy-promo.mp4">watch with sound</a> (MP4, 1080p)</sub></p>
+
 ![Cloudy home](docs/screenshots/home.png)
 
 ---

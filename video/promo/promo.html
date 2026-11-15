@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cloudy promo</title>
+<style>
+  @font-face {
+    font-family: 'Inter';
+    src: url('../../dist/assets/inter-latin-wght-normal-Dx4kXJAl.woff2') format('woff2');
+    font-weight: 100 900;
+    font-display: block;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #050506; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform, opacity; }
+  #vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.72) 100%);
+  }
+  #grain {
+    position: absolute; inset: 0; opacity: .035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .scene { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
+
+  h1 { font-size: 104px; font-weight: 700; letter-spacing: -0.035em; line-height: 1; }
+
+  /* ---------- scene 1 ---------- */
+  #s1 h1 { position: absolute; top: 190px; left: 0; right: 0; text-align: center; }
+  #s1 .sub { position: absolute; top: 316px; left: 0; right: 0; text-align: center; font-size: 30px; color: #8a8a93; letter-spacing: -0.01em; }
+  #chips { position: absolute; top: 470px; left: 0; right: 0; display: flex; justify-content: center; gap: 92px; }
+  .chipwrap { width: 220px; text-align: center; will-change: transform, opacity; }
+  .chip {
+    width: 190px; height: 190px; margin: 0 auto; border-radius: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.10);
+    will-change: box-shadow, transform;
+  }
+  .chip svg { width: 92px; height: 92px; }
+  .chipwrap .label { margin-top: 26px; font-size: 25px; color: #9a9aa4; letter-spacing: -0.01em; }
+
+  /* ---------- brand ---------- */
+  #s2 { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 30px; }
+  .brandrow { display: flex; align-items: center; gap: 40px; will-change: transform, opacity; }
+  .brandrow svg { width: 168px; height: 168px; filter: drop-shadow(0 0 60px rgba(239,68,68,.55)); }
+  .brandrow .name { font-size: 168px; font-weight: 700; letter-spacing: -0.045em; }
+  #s2 .tag { font-size: 38px; color: #9c9ca6; letter-spacing: -0.015em; will-change: opacity, transform; }
+
+  /* ---------- feature scenes ---------- */
+  .caption { position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 66px; font-weight: 650; letter-spacing: -0.03em; will-change: transform, opacity; }
+  .card {
+    position: absolute; left: 50%; top: 178px; width: 1440px; height: 900px;
+    margin-left: -720px; border-radius: 22px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: 0 70px 140px rgba(0,0,0,.75), 0 0 120px rgba(239,68,68,.10);
+    will-change: transform, opacity; background: #101012;
+  }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ---------- end ---------- */
+  #s6 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; }
+  #s6 .mark { will-change: transform, opacity; }
+  #s6 .mark svg { width: 196px; height: 196px; filter: drop-shadow(0 0 90px rgba(239,68,68,.65)); }
+  #s6 .name { font-size: 150px; font-weight: 700; letter-spacing: -0.045em; will-change: transform, opacity; }
+  #s6 .line { font-size: 40px; color: #a6a6b0; letter-spacing: -0.015em; will-change: opacity, transform; }
+  #s6 .pill {
+    display: inline-flex; align-items: center; gap: 16px; padding: 20px 40px; border-radius: 999px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+    font-size: 34px; color: #fff; will-change: transform, opacity;
+  }
+  #s6 .pill .dot { width: 12px; height: 12px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 18px #ef4444; }
+  #s6 .platforms { font-size: 28px; color: #7f7f89; letter-spacing: .12em; text-transform: uppercase; will-change: opacity; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob" id="b1" style="width:820px;height:820px;left:-160px;top:-220px;background:rgba(239,68,68,.20)"></div>
+  <div class="blob" id="b2" style="width:760px;height:760px;right:-180px;bottom:-240px;background:rgba(56,110,255,.16)"></div>
+  <div class="blob" id="b3" style="width:640px;height:640px;left:44%;top:36%;background:rgba(239,68,68,.10)"></div>
+  <div id="vignette"></div>
+
+  <!-- 1. hook -->
+  <section class="scene" id="s1">
+    <h1>Four music apps?</h1>
+    <div class="sub" id="s1sub">The same song, four different windows.</div>
+    <div id="chips"></div>
+  </section>
+
+  <!-- 2. brand -->
+  <section class="scene" id="s2">
+    <div class="brandrow" id="brandrow">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+      <div class="name">Cloudy</div>
+    </div>
+    <div class="tag" id="brandtag">Head in the clouds.</div>
+  </section>
+
+  <!-- 3. home -->
+  <section class="scene" id="s3">
+    <div class="caption" id="c3">Your whole queue. One place.</div>
+    <div class="card" id="card3"><img src="../../docs/screenshots/home.png" alt="" /></div>
+  </section>
+
+  <!-- 4. search -->
+  <section class="scene" id="s4">
+    <div class="caption" id="c4">Four catalogs, one search.</div>
+    <div class="card" id="card4"><img src="../../docs/screenshots/search.png" alt="" /></div>
+  </section>
+
+  <!-- 5. lyrics -->
+  <section class="scene" id="s5">
+    <div class="caption" id="c5">Lyrics synced syllable by syllable.</div>
+    <div class="card" id="card5"><img src="../../docs/screenshots/fullscreen.png" alt="" /></div>
+  </section>
+
+  <!-- 6. end -->
+  <section class="scene" id="s6">
+    <div class="mark" id="endmark">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+    </div>
+    <div class="name" id="endname">Cloudy</div>
+    <div class="line" id="endline">Free. Open source. Windows &amp; macOS.</div>
+    <div class="pill" id="endpill"><span class="dot"></span><span>github.com/Toastyfil/cloudy-music-player</span></div>
+    <div class="platforms" id="endplat">Head in the clouds</div>
+  </section>
+
+  <div id="grain"></div>
+</div>
+
+<script>
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeOutQuint = (x) => 1 - Math.pow(1 - clamp(x), 5);
+const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp = (a, b, x) => a + (b - a) * x;
+
+function vis(t, start, end, din = 0.55, dout = 0.45) {
+  return Math.min(easeOut(seg(t, start, start + din)), 1 - easeInOut(seg(t, end - dout, end)));
+}
+
+const SOURCES = [
+  {
+    name: 'YouTube Music', color: '#ff0033',
+    svg: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#ff0033"/><path d="M9.6 7.9 16.4 12l-6.8 4.1Z" fill="#fff"/></svg>`,
+  },
+  {
+    name: 'SoundCloud', color: '#ff7700',
+    svg: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 14.6v2.6M4.3 12.4v4.8M6.6 10.2v7M8.9 13.1v4.1" stroke="#ff7700" stroke-width="1.5" stroke-linecap="round"/><path d="M11 17.2h7.3a3.4 3.4 0 0 0 .2-6.8 4.9 4.9 0 0 0-7.5-3.1v9.9Z" fill="#ff7700"/></svg>`,
+  },
+  {
+    name: 'Deezer', color: '#a238ff',
+    svg: `<svg viewBox="0 0 24 24" fill="#a238ff"><rect x="2.4" y="15.4" width="4" height="3.2" rx="1.2"/><rect x="7.6" y="12.6" width="4" height="6" rx="1.2"/><rect x="12.8" y="15.4" width="4" height="3.2" rx="1.2"/><rect x="18" y="10.4" width="4" height="8.2" rx="1.2"/></svg>`,
+  },
+  {
+    name: 'Apple Music', color: '#fa2d48',
+    svg: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="6" fill="#fa2d48"/><path d="M15.4 6.6 10.2 8v7.2a2.4 2.4 0 1 1-2.4-2.4c.3 0 .6 0 .9.1V6.1l7.5-1.6v7.9a2.4 2.4 0 1 1-2.4-2.4c.3 0 .6 0 .9.1Z" fill="#fff"/></svg>`,
+  },
+];
+
+const chips = document.getElementById('chips');
+SOURCES.forEach((s) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'chipwrap';
+  wrap.innerHTML = `<div class="chip" style="box-shadow: 0 0 70px ${s.color}33, inset 0 0 40px ${s.color}14">${s.svg}</div><div class="label">${s.name}</div>`;
+  chips.appendChild(wrap);
+});
+const chipEls = [...document.querySelectorAll('.chipwrap')];
+const chipFaces = [...document.querySelectorAll('.chip')];
+
+const el = (id) => document.getElementById(id);
+
+function seek(t) {
+  const bob = (phase) => Math.sin(t * 0.9 + phase) * 6;
+
+  // background
+  el('b1').style.transform = `translate(${Math.sin(t * 0.22) * 40}px, ${Math.cos(t * 0.18) * 30}px)`;
+  el('b2').style.transform = `translate(${Math.cos(t * 0.19) * 46}px, ${Math.sin(t * 0.24) * 34}px)`;
+  el('b3').style.transform = `translate(${Math.sin(t * 0.3) * 60}px, ${Math.cos(t * 0.27) * 40}px) scale(${1 + Math.sin(t * 0.4) * 0.05})`;
+
+  // 1 — hook
+  const v1 = t < 3.5 ? 1 : 0;
+  el('s1').style.opacity = v1;
+  const e1 = easeOut(seg(t, 0.15, 0.95));
+  el('s1').querySelector('h1').style.transform = `translateY(${(1 - e1) * 34}px)`;
+  el('s1').querySelector('h1').style.opacity = e1;
+  el('s1sub').style.opacity = easeOut(seg(t, 0.45, 1.2)) * 0.95;
+  el('s1sub').style.transform = `translateY(${(1 - easeOut(seg(t, 0.45, 1.2))) * 20}px)`;
+  chipEls.forEach((c, i) => {
+    const e = easeOutQuint(seg(t, 0.7 + i * 0.17, 1.35 + i * 0.17));
+    c.style.opacity = e;
+    c.style.transform = `translateY(${(1 - e) * 54 + bob(i * 1.2)}px) scale(${lerp(0.88, 1, e)})`;
+    chipFaces[i].style.boxShadow = `0 0 ${70 + 40 * e}px ${SOURCES[i].color}${e > 0.5 ? '55' : '22'}, inset 0 0 40px ${SOURCES[i].color}14`;
+  });
+
+  // 2 — brand
+  const v2 = t >= 3.5 && t < 7.45 ? 1 : 0;
+  el('s2').style.opacity = v2;
+  const e2 = easeOutQuint(seg(t, 3.5, 4.6));
+  el('brandrow').style.transform = `scale(${lerp(0.9, 1, e2)})`;
+  el('brandrow').style.opacity = e2;
+  const e2b = easeOut(seg(t, 4.3, 5.3));
+  el('brandtag').style.opacity = e2b * 0.9;
+  el('brandtag').style.transform = `translateY(${(1 - e2b) * 22}px)`;
+
+  // 3–5 — feature cards
+  const scenes = [
+    { s: 's3', c: 'c3', card: 'card3', start: 7.45, end: 11.95, cap: 'Your whole queue. One place.' },
+    { s: 's4', c: 'c4', card: 'card4', start: 11.95, end: 16.4, cap: 'Four catalogs, one search.' },
+    { s: 's5', c: 'c5', card: 'card5', start: 16.4, end: 20.8, cap: 'Lyrics synced syllable by syllable.' },
+  ];
+  scenes.forEach((sc, i) => {
+    const v = t >= sc.start && t < sc.end ? 1 : 0;
+    el(sc.s).style.opacity = v;
+    const ec = easeOut(seg(t, sc.start + 0.04, sc.start + 0.8));
+    const capEl = el(sc.c);
+    capEl.style.opacity = ec;
+    capEl.style.transform = `translateY(${(1 - ec) * 26}px)`;
+    const p = seg(t, sc.start, sc.end);
+    const ecard = easeOut(seg(t, sc.start + 0.1, sc.start + 1.2));
+    const card = el(sc.card);
+    card.style.opacity = ecard;
+    card.style.transform = `translateY(${(1 - ecard) * 90}px) scale(${lerp(1.055, 1.0, ecard) + p * 0.022})`;
+  });
+
+  // 6 — end
+  const v6 = t >= 20.8 ? 1 : 0;
+  el('s6').style.opacity = v6;
+  const e6 = easeOutQuint(seg(t, 20.85, 21.7));
+  el('endmark').style.opacity = e6;
+  el('endmark').style.transform = `scale(${lerp(0.82, 1, e6)}) translateY(${(1 - e6) * 24}px)`;
+  const e6b = easeOut(seg(t, 21.05, 21.8));
+  el('endname').style.opacity = e6b;
+  el('endname').style.transform = `translateY(${(1 - e6b) * 26}px)`;
+  const e6c = easeOut(seg(t, 21.25, 22.0));
+  el('endline').style.opacity = e6c * 0.95;
+  el('endline').style.transform = `translateY(${(1 - e6c) * 20}px)`;
+  const e6d = easeOut(seg(t, 21.5, 22.3));
+  el('endpill').style.opacity = e6d;
+  el('endpill').style.transform = `translateY(${(1 - e6d) * 18}px) scale(${lerp(0.96, 1, e6d)})`;
+  el('endplat').style.opacity = easeOut(seg(t, 21.8, 22.6)) * 0.75;
+}
+
+window.DURATION = 25;
+window.seek = seek;
+seek(0);
+</script>
+</body>
+</html>
