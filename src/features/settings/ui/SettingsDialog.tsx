@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Keyboard, Palette, RotateCcw, Search, SlidersHorizontal, Trash2, Volume2, Wifi } from 'lucide-react';
+import { Check, Info, Keyboard, Palette, RefreshCw, RotateCcw, RotateCw, Search, SlidersHorizontal, Trash2, Volume2, Wifi } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { bridge, isElectron } from '@/shared/api/bridge';
 import { Button } from '@/shared/ui/Button';
@@ -19,6 +19,7 @@ import { THEMES } from '@/shared/config/themes';
 import { LOGO_VARIANTS, LogoGlyph } from '@/shared/ui/Logo';
 import { LOCALES } from '@/shared/config/locales';
 import { useT } from '@/shared/lib/i18n';
+import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { cn } from '@/shared/lib/cn';
 
 /** English names, so typing "japanese" or "german" finds the native label. */
@@ -64,7 +65,16 @@ function EffectSlider({
   );
 }
 
-type Tab = 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache';
+type Tab = 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
+
+function relativeTime(timestamp: number) {
+  const minutes = Math.round((Date.now() - timestamp) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return new Date(timestamp).toLocaleDateString();
+}
 
 const TABS: {
   id: Tab;
@@ -77,6 +87,7 @@ const TABS: {
   { id: 'audio', label: 'Audio', icon: SlidersHorizontal },
   { id: 'shortcuts', key: 'shortcuts', icon: Keyboard },
   { id: 'cache', key: 'cache', icon: Wifi },
+  { id: 'about', label: 'About', icon: Info },
 ];
 
 function Row({
@@ -134,6 +145,30 @@ export function SettingsDialog() {
   const [capturing, setCapturing] = useState<ShortcutAction | null>(null);
   const [langFilter, setLangFilter] = useState('');
   const [presetName, setPresetName] = useState('');
+  const [version, setVersion] = useState('1.1.1');
+
+  const updatePhase = useUpdatesStore((s) => s.phase);
+  const updateVersion = useUpdatesStore((s) => s.version);
+  const updateProgress = useUpdatesStore((s) => s.progress ?? 0);
+  const updateCheckedAt = useUpdatesStore((s) => s.checkedAt);
+  const updateError = useUpdatesStore((s) => s.error);
+  const installUpdate = useUpdatesStore((s) => s.install);
+
+  const checkedLabel = updateCheckedAt ? relativeTime(updateCheckedAt) : null;
+  const updateStatus =
+    updatePhase === 'checking'
+      ? 'Checking GitHub for a newer release…'
+      : updatePhase === 'downloading'
+        ? `Downloading Cloudy ${updateVersion ?? ''} · ${Math.round(updateProgress * 100)}%`
+        : updatePhase === 'installing'
+          ? 'Installing — Cloudy reopens on the new version.'
+          : updatePhase === 'ready'
+            ? `Cloudy ${updateVersion ?? ''} is downloaded and ready to install.`
+            : updatePhase === 'error'
+              ? `Last check failed${updateError ? ` (${updateError})` : ''}${checkedLabel ? ` · ${checkedLabel}` : ''}`
+              : updatePhase === 'current'
+                ? `Up to date${checkedLabel ? ` · checked ${checkedLabel}` : ''}`
+                : 'Not checked yet — Cloudy looks for updates on every launch.';
 
   const settings = useSettingsStore();
   const t = useT();
@@ -156,6 +191,7 @@ export function SettingsDialog() {
     if (!open) return;
     void bridge().cache.stats().then(setCache).catch(() => undefined);
     void bridge().app.dbStats().then(setStats).catch(() => undefined);
+    void bridge().app.info().then((info) => setVersion(info.version)).catch(() => undefined);
   }, [open]);
 
   useEffect(() => {
@@ -209,7 +245,7 @@ export function SettingsDialog() {
                   {key ? t(key) : label}
                 </button>
               ))}
-              <p className="absolute bottom-4 px-2 text-[10.5px] text-faint">Cloudy 1.0.0</p>
+              <p className="absolute bottom-4 px-2 text-[10.5px] text-faint">Cloudy {version}</p>
             </aside>
 
             <div className="min-w-0 flex-1 overflow-y-auto p-6">
@@ -809,6 +845,37 @@ export function SettingsDialog() {
                     <Check size={13} className="mt-0.5 shrink-0 text-accent" />
                     Cloudy has no account, no analytics and no ads. Nothing leaves your machine except catalog requests, LRCLIB
                     lyrics lookups and (optionally) Discord presence.
+                  </p>
+                </section>
+              ) : null}
+
+              {tab === 'about' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">About Cloudy</h3>
+                  <Row title="Version" description="The build installed on this machine.">
+                    <span className="text-[12.5px] text-muted">Cloudy {version}</span>
+                  </Row>
+                  <Row title="Updates" description={updateStatus}>
+                    <div className="flex items-center gap-2">
+                      {updatePhase === 'ready' ? (
+                        <Button size="sm" onClick={() => void installUpdate()}>
+                          <RotateCw size={13} /> Restart & install
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="subtle"
+                        disabled={updatePhase === 'checking' || updatePhase === 'downloading' || updatePhase === 'installing'}
+                        onClick={() => void bridge().updates.check()}
+                      >
+                        <RefreshCw size={13} className={updatePhase === 'checking' ? 'animate-spin' : ''} /> Check for updates
+                      </Button>
+                    </div>
+                  </Row>
+                  <p className="mt-4 flex items-start gap-2 rounded-lg bg-surface/60 p-3 text-[11.5px] leading-relaxed text-muted">
+                    <Check size={13} className="mt-0.5 shrink-0 text-accent" />
+                    Your library, playlists, settings and cached audio live outside the install folder, so an update never touches
+                    them.
                   </p>
                 </section>
               ) : null}

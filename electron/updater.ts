@@ -30,6 +30,8 @@ export interface UpdateState {
   bytes?: number;
   total?: number;
   error?: string;
+  /** When the last successful or failed check finished. */
+  checkedAt?: number;
 }
 
 let state: UpdateState = { phase: 'idle' };
@@ -148,7 +150,7 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
     if (!latest) throw new Error('No published release found');
 
     if (!isNewer(latest, app.getVersion())) {
-      publish({ phase: 'current', version: app.getVersion() });
+      publish({ phase: 'current', version: app.getVersion(), checkedAt: Date.now() });
       return state;
     }
 
@@ -163,11 +165,12 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
       phase: 'ready',
       version: latest,
       notes,
+      checkedAt: Date.now(),
       progress: 1,
       total: Number(asset.size ?? 0) || undefined,
     });
   } catch (error) {
-    publish({ phase: 'error', error: error instanceof Error ? error.message : 'Update check failed' });
+    publish({ phase: 'error', error: error instanceof Error ? error.message : 'Update check failed', checkedAt: Date.now() });
   } finally {
     checking = false;
   }

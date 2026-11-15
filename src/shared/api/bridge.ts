@@ -106,6 +106,8 @@ export interface UpdateStatus {
   bytes?: number;
   total?: number;
   error?: string;
+  /** When the last successful or failed check finished. */
+  checkedAt?: number;
 }
 
 declare global {
@@ -153,7 +155,7 @@ function emitUpdate(next: UpdateStatus) {
 
 function runUpdateDemo() {
   if (typeof location === 'undefined' || !new URLSearchParams(location.search).has('updateDemo')) return;
-  emitUpdate({ phase: 'downloading', version: '1.1.0', progress: 0.34, notes: '' });
+  emitUpdate({ phase: 'downloading', version: '1.1.2', progress: 0.34, notes: '' });
   let progress = 0.34;
   const tick = window.setInterval(() => {
     progress = Math.min(1, progress + 0.16);
@@ -161,13 +163,13 @@ function runUpdateDemo() {
       window.clearInterval(tick);
       emitUpdate({
         phase: 'ready',
-        version: '1.1.0',
+        version: '1.1.2',
         progress: 1,
         notes: 'Lyrics stay on the beat, the queue remembers where you were, and the player starts a little faster.',
       });
       return;
     }
-    emitUpdate({ phase: 'downloading', version: '1.1.0', progress, notes: '' });
+    emitUpdate({ phase: 'downloading', version: '1.1.2', progress, notes: '' });
   }, 420);
 }
 
@@ -373,7 +375,7 @@ const browserBridge: Bridge = {
     },
   },
   app: {
-    info: async () => ({ version: '1.0.0', platform: 'browser', apiOrigin: 'http://127.0.0.1:3456', userData: 'browser' }),
+    info: async () => ({ version: '1.1.1', platform: 'browser', apiOrigin: 'http://127.0.0.1:3456', userData: 'browser' }),
     dbStats: async () => ({ tracks: read<unknown[]>('library', []).length, playlists: read<unknown[]>('playlists', []).length }),
     thumbar: async () => false,
   },
