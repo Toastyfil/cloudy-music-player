@@ -351,7 +351,10 @@ function handleDeepLink(url: string) {
   mainWindow?.webContents.send('deeplink', route);
 }
 
-const gotLock = app.requestSingleInstanceLock();
+// The updater starts the freshly unpacked copy while this instance is still
+// shutting down, so that launch must not be treated as a second instance.
+const launchedByUpdater = process.argv.includes('--after-update');
+const gotLock = launchedByUpdater || app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {

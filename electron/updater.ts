@@ -387,37 +387,72 @@ async function installWindowsZip(zip: string) {
   const currentExe = process.execPath;
   const root = path.dirname(currentExe);
   const destination = path.join(root, `app-${version}`);
+  await logInstall(`install start zip=${zip} dest=${destination}`);
   const newExe = await expandWindowsZip(zip, destination);
+  await logInstall(`expanded exe=${newExe}`);
   await repointShortcuts(currentExe, newExe);
+  await logInstall('shortcuts repointed');
   await repointUninstallEntry(destination, version);
+  await logInstall('uninstall entry updated');
+  // A marker from an earlier NSIS attempt would otherwise report a block that
+  // this install just resolved.
+  await fs.rm(path.join(app.getPath('userData'), 'updates', 'pending.json'), { force: true }).catch(() => undefined);
   publish({ ...state, phase: 'installing' });
   const { spawn } = await import('node:child_process');
   // Detached, so the new copy survives this process exiting. Arguments are
   // carried over so a launched-with-flags instance (debugging, deep link) stays
   // the same kind of instance.
-  spawn(newExe, process.argv.slice(1), { detached: true, stdio: 'ignore' }).unref();
+  const child = spawn(newExe, [...process.argv.slice(1), '--after-update'], { detached: true, stdio: 'ignore' });
+  child.on('error', (error) => void logInstall(`spawn failed: ${error.message}`));
+  child.unref();
+  await logInstall(`spawned pid=${child.pid ?? 'unknown'}`);
   setTimeout(() => app.quit(), 400);
   return { ok: true };
+}
+
+/** Diagnostics for the install hand-off: `<userData>/updates/install.log`. */
+async function logInstall(line: string) {
+  const file = path.join(app.getPath('userData'), 'updates', 'install.log');
+  await fs.appendFile(file, `${new Date().toISOString()} ${line}\n`, 'utf8').catch(() => undefined);
 }
 
 /** Unpacks the release zip and returns the executable inside it. */
 async function expandWindowsZip(zip: string, destination: string) {
   await fs.rm(destination, { recursive: true, force: true });
   await fs.mkdir(destination, { recursive: true });
-  await run(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      `Expand-Archive -LiteralPath ${psLiteral(zip)} -DestinationPath ${psLiteral(destination)} -Force`,
-    ],
-    { windowsHide: true },
+  // Windows ships bsdtar, which reads zip archives and is far quicker than
+  // Expand-Archive. PowerShell stays as the fallback for the rare machine where
+  // tar is missing or blocked.
+  const extracted = await run(path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'), [
+    '-xf',
+    zip,
+    '-C',
+    destination,
+  ], { windowsHide: true }).then(
+    () => true,
+    () => false,
   );
+  if (!extracted) {
+    await logInstall('tar extraction failed, falling back to Expand-Archive');
+    await run(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        `Expand-Archive -LiteralPath ${psLiteral(zip)} -DestinationPath ${psLiteral(destination)} -Force`,
+      ],
+      { windowsHide: true },
+    );
+  }
+  const entries = await fs.readdir(destination).catch(() => [] as string[]);
   const exe = path.join(destination, 'cloudy.exe');
-  await fs.access(exe);
+  await fs.access(exe).catch(async () => {
+    await logInstall(`expand produced ${entries.length} entries: ${entries.slice(0, 5).join(', ')}`);
+    throw new Error(`The update archive did not contain cloudy.exe (${entries.length} files extracted)`);
+  });
   return exe;
 }
 
@@ -454,8 +489,10 @@ async function install() {
     await shell.openPath(installerPath);
     return { ok: true };
   } catch (error) {
-    publish({ ...state, phase: 'error', error: (error as Error).message });
-    return { ok: false, error: (error as Error).message };
+    const message = (error as Error).message;
+    await logInstall(`install failed: ${message}`);
+    publish({ ...state, phase: 'error', error: message });
+    return { ok: false, error: message };
   }
 }
 
