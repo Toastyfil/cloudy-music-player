@@ -4,7 +4,7 @@
 
 [![Cloudy in 25 seconds — click to watch with sound](docs/cloudy-promo.gif)](https://github.com/Toastyfil/cloudy-music-player/raw/main/docs/cloudy-promo.mp4)
 
-<p align="center"><sub>25-second tour — <a href="https://github.com/Toastyfil/cloudy-music-player/raw/main/docs/cloudy-promo.mp4">watch with sound</a> (MP4, 1080p)</sub></p>
+<p align="center"><sub>25-second tour — <a href="https://github.com/Toastyfil/cloudy-music-player/raw/main/docs/cloudy-promo.mp4">watch with sound</a> (MP4, 1080p) · vertical cut: <a href="docs/cloudy-vertical.mp4">cloudy-vertical.mp4</a> (9:16)</sub></p>
 
 ![Cloudy home](docs/screenshots/home.png)
 

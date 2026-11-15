@@ -40,3 +40,6 @@ scripts/.gh-device-token
 video/promo/frames/
 video/promo/stills/
 video/promo/audio-bed.wav
+video/promo/frames-v/
+video/promo/stills-v/
+video/promo/soundtrack.wav
