@@ -73,6 +73,8 @@ xattr -dr com.apple.quarantine /Applications/Cloudy.app
 
 Upgrades keep your library, playlists, settings and cached audio.
 
+The builds are not code-signed yet, so Windows SmartScreen asks for **More info → Run anyway** on first launch and some antivirus products treat a self-updating unsigned app with suspicion. Signature scans find nothing; [docs/antivirus.md](docs/antivirus.md) covers the false-positive reports and why signing is the fix.
+
 ---
 
 ## Build from source
