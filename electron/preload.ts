@@ -75,6 +75,18 @@ const api = {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   },
+  updates: {
+    state: () => ipcRenderer.invoke('update:state'),
+    check: (quiet?: boolean) => ipcRenderer.invoke('update:check', quiet),
+    install: () => ipcRenderer.invoke('update:install'),
+    onState: (cb: (state: unknown) => void) => {
+      const handler = (_e: unknown, state: unknown) => cb(state);
+      ipcRenderer.on('update:state', handler);
+      return () => {
+        ipcRenderer.removeListener('update:state', handler);
+      };
+    },
+  },
   app: {
     info: () => ipcRenderer.invoke('app:info'),
     dbStats: () => ipcRenderer.invoke('db:stats'),

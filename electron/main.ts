@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initDatabase, library, favorites, playlists, settings, queueState, databaseStats, closeDatabase } from './db';
 import { initCache, cacheTrack, cacheStats, clearCache, cachedPathFor, removeCached } from './cache';
 import { presence } from './discord';
+import { registerUpdater } from './updater';
 import { routeForLink } from '../src/shared/lib/smartLinks';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -381,6 +382,7 @@ if (!gotLock) {
     });
 
     registerIpc();
+    registerUpdater();
     registerProtocolClient();
     createWindow();
     buildTray();

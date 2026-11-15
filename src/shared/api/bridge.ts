@@ -87,7 +87,25 @@ export interface Bridge {
     onMediaAction(cb: (action: string) => void): () => void;
     onDeeplink(cb: (route: string) => void): () => void;
   };
+  updates: {
+    state(): Promise<UpdateStatus>;
+    check(quiet?: boolean): Promise<UpdateStatus>;
+    install(): Promise<{ ok: boolean; error?: string }>;
+    onState(cb: (status: UpdateStatus) => void): () => void;
+  };
   isElectron: boolean;
+}
+
+export type UpdatePhase = 'idle' | 'checking' | 'downloading' | 'ready' | 'installing' | 'error' | 'current';
+
+export interface UpdateStatus {
+  phase: UpdatePhase;
+  version?: string;
+  notes?: string;
+  progress?: number;
+  bytes?: number;
+  total?: number;
+  error?: string;
 }
 
 declare global {
@@ -121,6 +139,36 @@ function write(key: string, value: unknown) {
 
 function toLibraryTrack(track: Track, addedAt = Date.now()): LibraryTrack {
   return { ...track, addedAt, playCount: 0, lastPlayedAt: null, cachedPath: null };
+}
+
+// A browser preview has no installer to run, so `?updateDemo=1` plays the whole
+// download → ready sequence locally to design and test the prompt.
+const updateListeners = new Set<(status: UpdateStatus) => void>();
+let previewUpdate: UpdateStatus = { phase: 'idle' };
+
+function emitUpdate(next: UpdateStatus) {
+  previewUpdate = next;
+  for (const listener of updateListeners) listener(next);
+}
+
+function runUpdateDemo() {
+  if (typeof location === 'undefined' || !new URLSearchParams(location.search).has('updateDemo')) return;
+  emitUpdate({ phase: 'downloading', version: '1.1.0', progress: 0.34, notes: '' });
+  let progress = 0.34;
+  const tick = window.setInterval(() => {
+    progress = Math.min(1, progress + 0.16);
+    if (progress >= 1) {
+      window.clearInterval(tick);
+      emitUpdate({
+        phase: 'ready',
+        version: '1.1.0',
+        progress: 1,
+        notes: 'Lyrics stay on the beat, the queue remembers where you were, and the player starts a little faster.',
+      });
+      return;
+    }
+    emitUpdate({ phase: 'downloading', version: '1.1.0', progress, notes: '' });
+  }, 420);
 }
 
 const browserBridge: Bridge = {
@@ -310,6 +358,18 @@ const browserBridge: Bridge = {
     openExternal: async (url: string) => {
       window.open(url, '_blank', 'noopener,noreferrer');
       return true;
+    },
+  },
+  updates: {
+    state: async () => previewUpdate,
+    check: async () => {
+      runUpdateDemo();
+      return previewUpdate;
+    },
+    install: async () => ({ ok: false, error: 'Updates install in the desktop app' }),
+    onState: (cb) => {
+      updateListeners.add(cb);
+      return () => updateListeners.delete(cb);
     },
   },
   app: {

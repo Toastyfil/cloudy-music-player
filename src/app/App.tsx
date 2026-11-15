@@ -19,6 +19,8 @@ import { applyPendingAlignment, scheduleAutoAlign } from '@/features/lyrics/lib/
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useGlobalShortcuts } from '@/features/shortcuts/hooks/useGlobalShortcuts';
+import { UpdateDialog } from '@/features/updates/ui/UpdateDialog';
+import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { useAudioBindings } from '@/features/player/hooks/useAudioBindings';
 import { bridge } from '@/shared/api/bridge';
 
@@ -55,6 +57,15 @@ export function App() {
     const upcoming = index >= 0 ? queue.slice(index + 1, index + 4) : queue.slice(0, 3);
     if (upcoming.length) void prefetchLyrics(upcoming);
   }, [track?.id, loadLyrics]);
+
+  // Update events arrive from the main process: progress while the installer
+  // downloads, then a ready state that opens the prompt.
+  useEffect(() => {
+    const off = bridge().updates.onState((status) => useUpdatesStore.getState().apply(status));
+    void bridge().updates.state().then((status) => useUpdatesStore.getState().apply(status));
+    void bridge().updates.check(true);
+    return off;
+  }, []);
 
   // The pending correction usually cannot be applied at track switch, because
   // that track's lyrics may still be loading. Apply it the moment they arrive.
@@ -109,6 +120,8 @@ export function App() {
         </AnimatePresence>
         <QueuePanel />
       </div>
+
+      <UpdateDialog />
 
       <AdaptiveAccent />
       <PlayerBar />
