@@ -40,11 +40,29 @@ export class ApiError extends Error {
   }
 }
 
+/** Waits for a service that is still starting rather than failing the first paint. */
+const READY_TIMEOUT = 15_000;
+
+async function fetchWhenReady(url: string, init?: RequestInit) {
+  const deadline = Date.now() + READY_TIMEOUT;
+  for (;;) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      // A refused connection means the bundled service is not listening yet;
+      // an abort or a real network error must surface immediately.
+      const refused = error instanceof TypeError && !init?.signal?.aborted;
+      if (!refused || Date.now() >= deadline) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25_000);
   try {
-    const res = await fetch(`${origin}${path}`, {
+    const res = await fetchWhenReady(`${origin}${path}`, {
       ...init,
       signal: init?.signal ?? controller.signal,
       headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },

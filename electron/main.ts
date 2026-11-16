@@ -365,8 +365,7 @@ if (!gotLock) {
     mainWindow?.focus();
   });
 
-  app.whenReady().then(async () => {
-    await ensureBackend();
+  app.whenReady().then(() => {
     try {
       initDatabase(app.getPath('userData'));
     } catch (error) {
@@ -387,8 +386,12 @@ if (!gotLock) {
     registerIpc();
     registerUpdater();
     registerProtocolClient();
+    // The window comes first: the bundled service can take seconds to answer on
+    // a cold start, and waiting for it made the app look like it had not opened.
+    // Renderer requests retry while it warms up.
     createWindow();
     buildTray();
+    void ensureBackend();
 
     // Media keys work even when the window is unfocused.
     const bindings: [string, string][] = [
