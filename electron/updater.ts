@@ -305,6 +305,49 @@ export async function checkForUpdates(options: { quiet?: boolean } = {}) {
   return state;
 }
 
+/**
+ * The folder holding the install: versioned copies live beside it, so an app-*
+ * copy resolves to its parent rather than nesting deeper on every update.
+ */
+function windowsInstallRoot() {
+  const dir = path.dirname(process.execPath);
+  return path.basename(dir).startsWith('app-') ? path.dirname(dir) : dir;
+}
+
+/**
+ * Switches a launch from an outdated copy to the newest versioned one.
+ *
+ * Shortcuts, taskbar pins and Explorer's history can all keep pointing at the
+ * executable that existed before an update. Without this, opening Cloudy from
+ * such a shortcut runs the old build again, which checks GitHub, sees a newer
+ * release and offers the update the user just installed — over and over.
+ */
+export async function adoptNewerInstall(): Promise<boolean> {
+  if (process.platform !== 'win32' || !app.isPackaged) return false;
+  const dir = path.dirname(process.execPath);
+  if (path.basename(dir).startsWith('app-')) return false;
+  const root = dir;
+  let best: { version: string; exe: string } | null = null;
+  for (const entry of await fs.readdir(root).catch(() => [] as string[])) {
+    if (!entry.startsWith('app-')) continue;
+    const candidate = entry.slice('app-'.length);
+    if (!isNewer(candidate, app.getVersion())) continue;
+    const exe = path.join(root, entry, 'cloudy.exe');
+    const exists = await fs
+      .stat(exe)
+      .then((stat) => stat.isFile())
+      .catch(() => false);
+    if (!exists) continue;
+    if (!best || isNewer(candidate, best.version)) best = { version: candidate, exe };
+  }
+  if (!best) return false;
+  await logInstall(`adopting ${best.version} from ${best.exe} (running ${app.getVersion()})`);
+  const { spawn } = await import('node:child_process');
+  spawn(best.exe, [...process.argv.slice(1), '--after-update'], { detached: true, stdio: 'ignore' }).unref();
+  app.quit();
+  return true;
+}
+
 /** A PowerShell single-quoted literal (paths never contain a quote we can't escape). */
 function psLiteral(value: string) {
   return `'${value.replace(/'/g, "''")}'`;
@@ -315,6 +358,7 @@ $shell = New-Object -ComObject WScript.Shell
 $old = [IO.Path]::GetFullPath($OldExe)
 $roots = @(
   Join-Path $env:APPDATA 'Microsoft\\Windows\\Start Menu',
+  Join-Path $env:APPDATA 'Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar',
   Join-Path $env:ProgramData 'Microsoft\\Windows\\Start Menu',
   Join-Path $env:USERPROFILE 'Desktop',
   Join-Path $env:PUBLIC 'Desktop'
@@ -385,8 +429,7 @@ if ($Uninstaller) { Set-ItemProperty $key.PSPath -Name UninstallString -Value ('
 async function installWindowsZip(zip: string) {
   const version = state.version ?? 'latest';
   const currentExe = process.execPath;
-  const root = path.dirname(currentExe);
-  const destination = path.join(root, `app-${version}`);
+  const destination = path.join(windowsInstallRoot(), `app-${version}`);
   await logInstall(`install start zip=${zip} dest=${destination}`);
   const newExe = await expandWindowsZip(zip, destination);
   await logInstall(`expanded exe=${newExe}`);
@@ -500,11 +543,13 @@ async function install() {
 async function pruneOldVersions() {
   if (process.platform !== 'win32' || !app.isPackaged) return;
   const current = path.dirname(process.execPath);
+  // Only a copy that lives in a versioned folder may delete its siblings; the
+  // original install must never remove the newer copy it has not adopted yet.
   if (!path.basename(current).startsWith('app-')) return;
-  const parent = path.dirname(current);
-  for (const entry of await fs.readdir(parent).catch(() => [] as string[])) {
-    if (!entry.startsWith('app-') || path.join(parent, entry) === current) continue;
-    await fs.rm(path.join(parent, entry), { recursive: true, force: true }).catch(() => undefined);
+  const root = windowsInstallRoot();
+  for (const entry of await fs.readdir(root).catch(() => [] as string[])) {
+    if (!entry.startsWith('app-') || path.join(root, entry) === current) continue;
+    await fs.rm(path.join(root, entry), { recursive: true, force: true }).catch(() => undefined);
   }
 }
 

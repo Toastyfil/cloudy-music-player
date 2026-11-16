@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Download, RotateCw } from 'lucide-react';
 import { bridge } from '@/shared/api/bridge';
@@ -9,6 +10,17 @@ import { useUpdatesStore } from '../store/updatesStore';
  * already on disk, so "Install now" never means "go and fetch 130 MB yourself".
  * The backdrop blurs the whole player, which keeps the focus on one decision.
  */
+/** Closing the prompt sticks for that version, across restarts too. */
+const DISMISS_KEY = 'cloudy:update-dismissed';
+
+function readDismissedVersion(): string | null {
+  try {
+    return localStorage.getItem(DISMISS_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function UpdateDialog() {
   const phase = useUpdatesStore((s) => s.phase);
   const version = useUpdatesStore((s) => s.version);
@@ -20,9 +32,24 @@ export function UpdateDialog() {
   const install = useUpdatesStore((s) => s.install);
 
   const message = useUpdatesStore((s) => s.error);
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(readDismissedVersion);
   const ready = phase === 'ready';
   const failed = phase === 'error' && Boolean(message);
-  const open = !dismissed && (phase === 'downloading' || ready || phase === 'installing' || failed);
+  const closedForThisVersion = version != null && dismissedVersion === version;
+  const open =
+    !dismissed && !closedForThisVersion && (phase === 'downloading' || ready || phase === 'installing' || failed);
+
+  function close() {
+    if (version) {
+      try {
+        localStorage.setItem(DISMISS_KEY, version);
+      } catch {
+        /* private mode */
+      }
+      setDismissedVersion(version);
+    }
+    dismiss();
+  }
   const percent = Math.round(Math.min(1, Math.max(0, progress)) * 100);
 
   return (
@@ -82,7 +109,7 @@ export function UpdateDialog() {
 
             <div className="mt-6 flex items-center justify-end gap-2">
               <button
-                onClick={dismiss}
+                onClick={close}
                 className="rounded-full px-3.5 py-2 text-[12.5px] text-muted transition-colors hover:bg-surface hover:text-text"
               >
                 {ready || failed ? 'Close' : 'Hide'}
@@ -91,7 +118,7 @@ export function UpdateDialog() {
                 <button
                   onClick={() => {
                     void bridge().shell.openExternal('https://github.com/Toastyfil/cloudy-music-player/releases/latest');
-                    dismiss();
+                    close();
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90"
                 >
@@ -99,7 +126,15 @@ export function UpdateDialog() {
                 </button>
               ) : (
                 <button
-                  onClick={() => void install()}
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem(DISMISS_KEY);
+                    } catch {
+                      /* private mode */
+                    }
+                    setDismissedVersion(null);
+                    void install();
+                  }}
                   disabled={!ready}
                   className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[12.5px] font-semibold text-black transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
                 >

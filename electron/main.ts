@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initDatabase, library, favorites, playlists, settings, queueState, databaseStats, closeDatabase } from './db';
 import { initCache, cacheTrack, cacheStats, clearCache, cachedPathFor, removeCached } from './cache';
 import { presence } from './discord';
-import { registerUpdater } from './updater';
+import { adoptNewerInstall, registerUpdater } from './updater';
 import { routeForLink } from '../src/shared/lib/smartLinks';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -365,7 +365,10 @@ if (!gotLock) {
     mainWindow?.focus();
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    // A shortcut or pinned icon can still point at the build from before an
+    // update; hand the launch over to the newest copy instead of running it.
+    if (await adoptNewerInstall()) return;
     try {
       initDatabase(app.getPath('userData'));
     } catch (error) {
