@@ -23,6 +23,12 @@ jobs:
 
       - run: npm ci
 
+      # The bundled service has its own package.json; without this its
+      # node_modules is missing from the installer and the backend dies with
+      # "Cannot find package 'express'", leaving playback broken.
+      - name: Install backend dependencies
+        run: npm ci --prefix server
+
       - name: Bundle yt-dlp
         shell: bash
         run: |
@@ -111,6 +117,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci --prefix server
 
       - name: Bundle yt-dlp
         run: |
