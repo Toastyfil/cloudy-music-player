@@ -18,6 +18,7 @@ import { useLyricsStore } from '@/features/lyrics/store/lyricsStore';
 import { prefetchLyrics } from '@/features/lyrics/api/lrclib';
 import { applyPendingAlignment, scheduleAutoAlign } from '@/features/lyrics/lib/autoAlign';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
+import { applyInterfaceSettings } from '@/features/settings/lib/interfaceSettings';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useGlobalShortcuts } from '@/features/shortcuts/hooks/useGlobalShortcuts';
 import { UpdateDialog } from '@/features/updates/ui/UpdateDialog';
@@ -36,6 +37,18 @@ export function App() {
   const loadSettings = useSettingsStore((s) => s.load);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   const onboardingComplete = useSettingsStore((s) => s.onboardingComplete);
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
+  const noHandCursor = useSettingsStore((s) => s.noHandCursor);
+  const uiScale = useSettingsStore((s) => s.uiScale);
+  const cornerRadius = useSettingsStore((s) => s.cornerRadius);
+  const customBackground = useSettingsStore((s) => s.customBackground);
+  const backgroundBlur = useSettingsStore((s) => s.backgroundBlur);
+  const backgroundOpacity = useSettingsStore((s) => s.backgroundOpacity);
+  const meshGradient = useSettingsStore((s) => s.meshGradient);
+
+  useEffect(() => {
+    applyInterfaceSettings({ reduceMotion, noHandCursor, uiScale, cornerRadius });
+  }, [reduceMotion, noHandCursor, uiScale, cornerRadius]);
 
   useGlobalShortcuts();
   useAudioBindings();
@@ -105,6 +118,22 @@ export function App() {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
+      {/* Riff-style backdrop: an accent mesh, your own image, or both. It sits
+          under every panel so translucent surfaces pick up its colour. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {meshGradient ? <div className="cloudy-mesh absolute -inset-32" /> : null}
+        {customBackground ? (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${customBackground})`,
+              filter: backgroundBlur ? `blur(${backgroundBlur}px)` : undefined,
+              opacity: backgroundOpacity / 100,
+              transform: backgroundBlur ? 'scale(1.08)' : undefined,
+            }}
+          />
+        ) : null}
+      </div>
       <TitleBar />
 
       <div className="relative z-10 flex min-h-0 flex-1">

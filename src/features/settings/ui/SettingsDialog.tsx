@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Info, Keyboard, Palette, RefreshCw, RotateCcw, RotateCw, Search, SlidersHorizontal, Trash2, Volume2, Wifi } from 'lucide-react';
+import { Check, Info, Keyboard, MonitorCog, Palette, RefreshCw, RotateCcw, RotateCw, Search, SlidersHorizontal, Trash2, Volume2, Wifi } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { bridge, isElectron } from '@/shared/api/bridge';
 import { Button } from '@/shared/ui/Button';
@@ -65,7 +65,7 @@ function EffectSlider({
   );
 }
 
-type Tab = 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
+type Tab = 'interface' | 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
 
 function relativeTime(timestamp: number) {
   const minutes = Math.round((Date.now() - timestamp) / 60000);
@@ -82,6 +82,7 @@ const TABS: {
   label?: string;
   icon: typeof Palette;
 }[] = [
+  { id: 'interface', label: 'Interface', icon: MonitorCog },
   { id: 'appearance', key: 'appearance', icon: Palette },
   { id: 'playback', key: 'playback', icon: Volume2 },
   { id: 'audio', label: 'Audio', icon: SlidersHorizontal },
@@ -134,6 +135,28 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (value: 
       />
     </button>
   );
+}
+
+/** Shrink a picked picture to a 1600px JPEG so it fits comfortably in settings. */
+function fileToBackground(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not read that image'));
+    };
+    image.src = url;
+  });
 }
 
 export function SettingsDialog() {
@@ -249,6 +272,85 @@ export function SettingsDialog() {
             </aside>
 
             <div className="min-w-0 flex-1 overflow-y-auto p-6">
+              {tab === 'interface' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">You</h3>
+                  <Row title="Profile" description="A local name and initial for your player. Nothing leaves this computer.">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-[13px] font-semibold uppercase text-accent">
+                        {(settings.displayName.trim()[0] ?? 'C').toUpperCase()}
+                      </span>
+                      <input
+                        value={settings.displayName}
+                        onChange={(event) => settings.setDisplayName(event.target.value)}
+                        placeholder="Your name"
+                        aria-label="Profile name"
+                        maxLength={40}
+                        className="h-8 w-40 rounded-lg bg-surface/70 px-2.5 text-[12.5px] text-text outline-none placeholder:text-faint focus:ring-1 focus:ring-accent/40"
+                      />
+                    </div>
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Interface</h3>
+                  <Row
+                    title="Reduce motion"
+                    description="Replace spring and slide animations with short fades, like Riff's motion switch."
+                  >
+                    <Toggle value={settings.reduceMotion} onChange={settings.setReduceMotion} label="Reduce motion" />
+                  </Row>
+                  <Row title="UI scale" description="Zoom the whole interface from 90% to 115%.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {[0.9, 1, 1.05, 1.1, 1.15].map((scale) => (
+                        <button
+                          key={scale}
+                          onClick={() => settings.setUiScale(scale)}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-[12px] tabular-nums transition-colors',
+                            Math.abs(settings.uiScale - scale) < 0.001
+                              ? 'bg-accent text-black'
+                              : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {Math.round(scale * 100)}%
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Corner radius" description="How round cards, panels and artwork thumbnails are.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={20}
+                        step={1}
+                        value={settings.cornerRadius}
+                        onChange={(event) => settings.setCornerRadius(Number(event.target.value))}
+                        aria-label="Corner radius"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">
+                        {settings.cornerRadius}px
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="No-hand cursor" description="Use the normal arrow over buttons and links instead of a pointing hand.">
+                    <Toggle value={settings.noHandCursor} onChange={settings.setNoHandCursor} label="No-hand cursor" />
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Window</h3>
+                  <Row
+                    title="Minimize to tray on close"
+                    description="Keep playing in the background when the window is closed. Turn off to quit instead."
+                  >
+                    <Toggle
+                      value={!settings.quitOnClose}
+                      onChange={(on) => settings.setQuitOnClose(!on)}
+                      label="Minimize to tray on close"
+                    />
+                  </Row>
+                </section>
+              ) : null}
+
               {tab === 'appearance' ? (
                 <section>
                   <h3 className="mb-3 text-[15px] font-semibold">{t('language')}</h3>
@@ -361,6 +463,74 @@ export function SettingsDialog() {
                   <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
                     Shown in the title bar and on empty screens.
                   </p>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Background</h3>
+                  <Row
+                    title="Custom app background"
+                    description="Your own picture behind the whole player. It is resized and kept on this computer."
+                  >
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1 text-[12px] text-text transition-colors hover:border-white/20">
+                        Choose file
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          aria-label="Choose app background"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) void fileToBackground(file).then(settings.setCustomBackground).catch(() => undefined);
+                            event.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {settings.customBackground ? (
+                        <button
+                          onClick={() => settings.setCustomBackground('')}
+                          className="rounded-full px-2.5 py-1 text-[12px] text-muted transition-colors hover:text-text"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </Row>
+                  <Row title="Background blur" description="Soften the picture so panels stay readable.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={40}
+                        step={1}
+                        value={settings.backgroundBlur}
+                        onChange={(event) => settings.setBackgroundBlur(Number(event.target.value))}
+                        aria-label="Background blur"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">
+                        {settings.backgroundBlur}px
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Background opacity" description="How strongly the picture shows through.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={settings.backgroundOpacity}
+                        onChange={(event) => settings.setBackgroundOpacity(Number(event.target.value))}
+                        aria-label="Background opacity"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">
+                        {settings.backgroundOpacity}%
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Mesh gradient" description="Slow accent-coloured light drifting behind the interface.">
+                    <Toggle value={settings.meshGradient} onChange={settings.setMeshGradient} label="Mesh gradient" />
+                  </Row>
 
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">Window</h3>
                   <Row title="Transparent window" description="See your desktop through Cloudy. The window reopens once to apply it.">

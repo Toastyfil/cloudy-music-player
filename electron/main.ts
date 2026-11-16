@@ -125,10 +125,21 @@ function createWindow(bounds?: { x: number; y: number; width: number; height: nu
   window.on('maximize', () => window.webContents.send('window:state', { maximized: true }));
   window.on('unmaximize', () => window.webContents.send('window:state', { maximized: false }));
   window.on('close', (event) => {
-    if (!quitting) {
-      event.preventDefault();
-      window.hide();
+    if (quitting) return;
+    // "Minimize to tray on close" off means the close button really quits, the
+    // way Riff's switch works. Read per event so a change applies immediately.
+    let quitOnClose = false;
+    try {
+      quitOnClose = settings.get<boolean>('quitOnClose', false) === true;
+    } catch {
+      quitOnClose = false;
     }
+    if (quitOnClose) {
+      quitting = true;
+      return;
+    }
+    event.preventDefault();
+    window.hide();
   });
   window.on('closed', () => {
     mainWindow = null;
@@ -228,7 +239,20 @@ function registerIpc() {
     else mainWindow.maximize();
     return mainWindow.isMaximized();
   });
-  ipcMain.handle('window:close', () => mainWindow?.hide());
+  ipcMain.handle('window:close', () => {
+    let quitOnClose = false;
+    try {
+      quitOnClose = settings.get<boolean>('quitOnClose', false) === true;
+    } catch {
+      quitOnClose = false;
+    }
+    if (quitOnClose) {
+      quitting = true;
+      app.quit();
+      return;
+    }
+    mainWindow?.hide();
+  });
   ipcMain.handle('window:quit', () => {
     quitting = true;
     app.quit();

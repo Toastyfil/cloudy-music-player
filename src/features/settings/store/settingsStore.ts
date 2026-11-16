@@ -172,6 +172,26 @@ interface SettingsState {
   fadeMs: number;
   /** The first-run tour is finished; survives updates because settings do. */
   onboardingComplete: boolean;
+  /** Riff's "reduce motion": springs become short fades. */
+  reduceMotion: boolean;
+  /** Riff's "no-hand cursor": the arrow everywhere instead of a pointing hand. */
+  noHandCursor: boolean;
+  /** Interface zoom, 0.9 – 1.15. */
+  uiScale: number;
+  /** Card and panel corner radius in px. */
+  cornerRadius: number;
+  /** Closing the window quits instead of hiding to the tray. */
+  quitOnClose: boolean;
+  /** Local profile name shown in Settings, next to the avatar initial. */
+  displayName: string;
+  /** Custom app background as a compressed data URL, or ''. */
+  customBackground: string;
+  /** Blur applied to the custom background, in px. */
+  backgroundBlur: number;
+  /** Custom background opacity, 0 – 100. */
+  backgroundOpacity: number;
+  /** Animated accent mesh behind the interface, like Riff's. */
+  meshGradient: boolean;
   loaded: boolean;
   load: () => Promise<void>;
   setTheme: (id: string) => void;
@@ -195,6 +215,16 @@ interface SettingsState {
   setLogoVariant: (variant: string) => void;
   setWaveRing: (on: boolean) => void;
   setPerformanceMode: (on: boolean) => void;
+  setReduceMotion: (on: boolean) => void;
+  setNoHandCursor: (on: boolean) => void;
+  setUiScale: (value: number) => void;
+  setCornerRadius: (value: number) => void;
+  setQuitOnClose: (on: boolean) => void;
+  setDisplayName: (name: string) => void;
+  setCustomBackground: (dataUrl: string) => void;
+  setBackgroundBlur: (value: number) => void;
+  setBackgroundOpacity: (value: number) => void;
+  setMeshGradient: (on: boolean) => void;
   setLyricsSpeed: (speed: number) => void;
   setGradientTightness: (percent: number) => void;
   setVisualizerSensitivity: (value: number) => void;
@@ -241,6 +271,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   dspPresets: {},
   fadeMs: 0,
   onboardingComplete: false,
+  reduceMotion: false,
+  noHandCursor: false,
+  uiScale: 1,
+  cornerRadius: 12,
+  quitOnClose: false,
+  displayName: '',
+  customBackground: '',
+  backgroundBlur: 12,
+  backgroundOpacity: 100,
+  meshGradient: true,
   loaded: false,
 
   async load() {
@@ -273,6 +313,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.mono === 'boolean') next.mono = stored.mono;
       if (typeof stored.waveRing === 'boolean') next.waveRing = stored.waveRing;
       if (typeof stored.performanceMode === 'boolean') next.performanceMode = stored.performanceMode;
+      if (typeof stored.reduceMotion === 'boolean') next.reduceMotion = stored.reduceMotion;
+      if (typeof stored.noHandCursor === 'boolean') next.noHandCursor = stored.noHandCursor;
+      if (typeof stored.uiScale === 'number') next.uiScale = Math.max(0.9, Math.min(1.15, stored.uiScale));
+      if (typeof stored.cornerRadius === 'number')
+        next.cornerRadius = Math.max(0, Math.min(20, Math.round(stored.cornerRadius)));
+      if (typeof stored.quitOnClose === 'boolean') next.quitOnClose = stored.quitOnClose;
+      if (typeof stored.displayName === 'string') next.displayName = stored.displayName.slice(0, 40);
+      if (typeof stored.customBackground === 'string') next.customBackground = stored.customBackground;
+      if (typeof stored.backgroundBlur === 'number')
+        next.backgroundBlur = Math.max(0, Math.min(40, Math.round(stored.backgroundBlur)));
+      if (typeof stored.backgroundOpacity === 'number')
+        next.backgroundOpacity = Math.max(0, Math.min(100, Math.round(stored.backgroundOpacity)));
+      if (typeof stored.meshGradient === 'boolean') next.meshGradient = stored.meshGradient;
       if (typeof stored.lyricsSpeed === 'number') next.lyricsSpeed = stored.lyricsSpeed;
       if (typeof stored.gradientTightness === 'number')
         next.gradientTightness = Math.max(2, Math.min(24, stored.gradientTightness));
@@ -428,6 +481,61 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setLogoVariant(variant) {
     set({ logoVariant: variant });
     persistKey('logoVariant', variant);
+  },
+
+  setReduceMotion(on) {
+    set({ reduceMotion: on });
+    persistKey('reduceMotion', on);
+  },
+
+  setNoHandCursor(on) {
+    set({ noHandCursor: on });
+    persistKey('noHandCursor', on);
+  },
+
+  setUiScale(value) {
+    const uiScale = Math.max(0.9, Math.min(1.15, Math.round(value * 100) / 100));
+    set({ uiScale });
+    persistKey('uiScale', uiScale);
+  },
+
+  setCornerRadius(value) {
+    const cornerRadius = Math.max(0, Math.min(20, Math.round(value)));
+    set({ cornerRadius });
+    persistKey('cornerRadius', cornerRadius);
+  },
+
+  setQuitOnClose(on) {
+    set({ quitOnClose: on });
+    persistKey('quitOnClose', on);
+  },
+
+  setDisplayName(name) {
+    const displayName = name.slice(0, 40);
+    set({ displayName });
+    persistKey('displayName', displayName);
+  },
+
+  setCustomBackground(dataUrl) {
+    set({ customBackground: dataUrl });
+    persistKey('customBackground', dataUrl);
+  },
+
+  setBackgroundBlur(value) {
+    const backgroundBlur = Math.max(0, Math.min(40, Math.round(value)));
+    set({ backgroundBlur });
+    persistKey('backgroundBlur', backgroundBlur);
+  },
+
+  setBackgroundOpacity(value) {
+    const backgroundOpacity = Math.max(0, Math.min(100, Math.round(value)));
+    set({ backgroundOpacity });
+    persistKey('backgroundOpacity', backgroundOpacity);
+  },
+
+  setMeshGradient(on) {
+    set({ meshGradient: on });
+    persistKey('meshGradient', on);
   },
 
   setWaveRing(on) {
