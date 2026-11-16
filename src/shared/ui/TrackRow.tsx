@@ -4,6 +4,7 @@ import { cn } from '@/shared/lib/cn';
 import { formatTime } from '@/shared/lib/format';
 import { sourceLabel, isExternalTrack } from '@/shared/config/sources';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { AlbumArt } from './AlbumArt';
 import type { Track } from '@/shared/api/contracts';
 
@@ -58,6 +59,8 @@ export function TrackRow({
 }) {
   const [hovered, setHovered] = useState(false);
   const favorite = useFavoritesStore((s) => s.ids.includes(track.id));
+  const showExplicit = useSettingsStore((s) => s.showExplicitTag);
+  const classicCards = useSettingsStore((s) => s.classicCards);
 
   return (
     <div
@@ -73,7 +76,8 @@ export function TrackRow({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'group flex h-14 w-full items-center gap-3 rounded-lg px-3 text-left transition-colors duration-150 focus-ring',
+        'group flex h-14 w-full items-center gap-3 px-3 text-left transition-colors duration-150 focus-ring',
+        classicCards ? 'rounded-[20px] hover:scale-[1.004] hover:bg-surface/80 active:scale-[0.999]' : 'rounded-lg',
         active ? 'bg-accent-soft' : 'hover:bg-surface/70',
         className,
       )}
@@ -113,6 +117,14 @@ export function TrackRow({
       <span className="min-w-0 flex-1">
         <span className={cn('block truncate text-[14px] leading-tight', active ? 'font-semibold text-accent' : 'font-medium')}>
           {track.title}
+          {showExplicit && track.explicit ? (
+            <span
+              title="Explicit"
+              className="ms-1.5 inline-flex h-[13px] w-[13px] items-center justify-center rounded-[3px] bg-surface text-[9px] font-semibold leading-none text-faint align-[1px]"
+            >
+              E
+            </span>
+          ) : null}
         </span>
         <span className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted">
           <span className="truncate">{subtitleOverride ?? track.artist}</span>

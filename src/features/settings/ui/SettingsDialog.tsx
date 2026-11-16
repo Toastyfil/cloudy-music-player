@@ -1,5 +1,23 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Info, Keyboard, MonitorCog, Palette, RefreshCw, RotateCcw, RotateCw, Search, SlidersHorizontal, Trash2, Volume2, Wifi } from 'lucide-react';
+import {
+  Check,
+  Download,
+  Info,
+  Keyboard,
+  MonitorCog,
+  Palette,
+  RefreshCw,
+  RotateCcw,
+  RotateCw,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  UserRound,
+  Volume2,
+  Wifi,
+} from 'lucide-react';
+import type { LibraryPlaylist, Track } from '@/shared/api/contracts';
 import { useEffect, useMemo, useState } from 'react';
 import { bridge, isElectron } from '@/shared/api/bridge';
 import { Button } from '@/shared/ui/Button';
@@ -65,7 +83,7 @@ function EffectSlider({
   );
 }
 
-type Tab = 'interface' | 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
+type Tab = 'you' | 'interface' | 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
 
 function relativeTime(timestamp: number) {
   const minutes = Math.round((Date.now() - timestamp) / 60000);
@@ -82,12 +100,13 @@ const TABS: {
   label?: string;
   icon: typeof Palette;
 }[] = [
+  { id: 'you', label: 'You', icon: UserRound },
   { id: 'interface', label: 'Interface', icon: MonitorCog },
   { id: 'appearance', key: 'appearance', icon: Palette },
   { id: 'playback', key: 'playback', icon: Volume2 },
   { id: 'audio', label: 'Audio', icon: SlidersHorizontal },
   { id: 'shortcuts', key: 'shortcuts', icon: Keyboard },
-  { id: 'cache', key: 'cache', icon: Wifi },
+  { id: 'cache', label: 'Storage', icon: Wifi },
   { id: 'about', label: 'About', icon: Info },
 ];
 
@@ -137,19 +156,19 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (value: 
   );
 }
 
-/** Shrink a picked picture to a 1600px JPEG so it fits comfortably in settings. */
-function fileToBackground(file: File): Promise<string> {
+/** Shrink a picked picture to a JPEG data URL so it fits comfortably in settings. */
+function fileToBackground(file: File, maxSize = 1600, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
-      const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(image.width * scale));
       canvas.height = Math.max(1, Math.round(image.height * scale));
       canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
@@ -157,6 +176,19 @@ function fileToBackground(file: File): Promise<string> {
     };
     image.src = url;
   });
+}
+
+/** Hand a JSON file to the browser so the user picks where it lands. */
+function downloadJson(name: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export function SettingsDialog() {
@@ -168,6 +200,10 @@ export function SettingsDialog() {
   const [capturing, setCapturing] = useState<ShortcutAction | null>(null);
   const [langFilter, setLangFilter] = useState('');
   const [presetName, setPresetName] = useState('');
+  const [favoriteCount, setFavoriteCount] = useState<number | null>(null);
+  const [devices, setDevices] = useState<{ id: string; label: string }[]>([]);
+  const [libraryBusy, setLibraryBusy] = useState<'' | 'export' | 'import'>('');
+  const [libraryMessage, setLibraryMessage] = useState('');
   const [version, setVersion] = useState('1.1.1');
 
   const updatePhase = useUpdatesStore((s) => s.phase);
@@ -214,6 +250,20 @@ export function SettingsDialog() {
     if (!open) return;
     void bridge().cache.stats().then(setCache).catch(() => undefined);
     void bridge().app.dbStats().then(setStats).catch(() => undefined);
+    void navigator.mediaDevices
+      ?.enumerateDevices()
+      .then((list) =>
+        setDevices(
+          list
+            .filter((device) => device.kind === 'audiooutput')
+            .map((device, index) => ({ id: device.deviceId, label: device.label || `Output ${index + 1}` })),
+        ),
+      )
+      .catch(() => setDevices([]));
+    void bridge()
+      .favorites.ids()
+      .then((ids) => setFavoriteCount(ids.length))
+      .catch(() => setFavoriteCount(null));
     void bridge().app.info().then((info) => setVersion(info.version)).catch(() => undefined);
   }, [open]);
 
@@ -272,6 +322,164 @@ export function SettingsDialog() {
             </aside>
 
             <div className="min-w-0 flex-1 overflow-y-auto p-6">
+              {tab === 'you' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">You</h3>
+                  <div className="mb-4 flex items-center gap-4 rounded-xl border border-line bg-surface/50 p-4">
+                    <label className="group relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-accent/15 text-[22px] font-semibold uppercase text-accent">
+                      {settings.avatar ? (
+                        <img src={settings.avatar} alt="Profile picture" className="h-full w-full object-cover" />
+                      ) : (
+                        (settings.displayName.trim()[0] ?? 'C').toUpperCase()
+                      )}
+                      <span className="absolute inset-0 hidden items-center justify-center bg-black/55 text-[10px] font-medium text-white group-hover:flex">
+                        Change
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        aria-label="Choose profile picture"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void fileToBackground(file, 256, 0.86).then(settings.setAvatar).catch(() => undefined);
+                          event.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <div className="min-w-0 flex-1">
+                      <input
+                        value={settings.displayName}
+                        onChange={(event) => settings.setDisplayName(event.target.value)}
+                        placeholder="Your name"
+                        aria-label="Profile name in You tab"
+                        maxLength={40}
+                        className="h-9 w-full rounded-lg bg-surface/70 px-2.5 text-[13px] text-text outline-none placeholder:text-faint focus:ring-1 focus:ring-accent/40"
+                      />
+                      <p className="mt-1 text-[11px] text-muted">Local profile — no account, nothing uploaded.</p>
+                    </div>
+                    {settings.avatar ? (
+                      <button
+                        onClick={() => settings.setAvatar('')}
+                        className="shrink-0 rounded-full px-2.5 py-1 text-[12px] text-muted transition-colors hover:text-text"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="mb-5 grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Tracks', value: stats?.tracks },
+                      { label: 'Playlists', value: stats?.playlists },
+                      { label: 'Favorites', value: favoriteCount ?? undefined },
+                    ].map((entry) => (
+                      <div key={entry.label} className="rounded-xl border border-line bg-surface/40 p-3">
+                        <p className="text-[17px] font-semibold tabular-nums">
+                          {entry.value == null ? '—' : entry.value}
+                        </p>
+                        <p className="text-[11px] text-muted">{entry.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h3 className="mb-3 text-[15px] font-semibold">Backup</h3>
+                  <Row
+                    title="Export library (.json)"
+                    description="Playlists, their tracks and your favorites in one file you can keep anywhere."
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        setLibraryBusy('export');
+                        setLibraryMessage('');
+                        try {
+                          const lists = (await bridge().playlists.all()) as LibraryPlaylist[];
+                          const playlists = [];
+                          for (const list of lists) {
+                            playlists.push({
+                              name: list.name,
+                              description: list.description ?? '',
+                              tracks: await bridge().playlists.tracks(list.id),
+                            });
+                          }
+                          const favorites = (await bridge().favorites.all()) as Track[];
+                          downloadJson(`cloudy-library-${new Date().toISOString().slice(0, 10)}.json`, {
+                            app: 'Cloudy',
+                            version: 1,
+                            exportedAt: new Date().toISOString(),
+                            profile: { name: settings.displayName },
+                            playlists,
+                            favorites,
+                          });
+                          setLibraryMessage(`Exported ${playlists.length} playlists and ${favorites.length} favorites.`);
+                        } catch (error) {
+                          setLibraryMessage(`Export failed: ${(error as Error).message}`);
+                        } finally {
+                          setLibraryBusy('');
+                        }
+                      }}
+                      disabled={libraryBusy !== ''}
+                    >
+                      <Download size={13} /> {libraryBusy === 'export' ? 'Working…' : 'Export'}
+                    </Button>
+                  </Row>
+                  <Row
+                    title="Import library (.json)"
+                    description="Adds the playlists and favorites from a Cloudy backup. Nothing already here is removed."
+                  >
+                    <label className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-[12px] text-text transition-colors hover:border-white/20">
+                      <Upload size={13} /> {libraryBusy === 'import' ? 'Working…' : 'Import'}
+                      <input
+                        type="file"
+                        accept="application/json,.json"
+                        className="hidden"
+                        aria-label="Import library"
+                        disabled={libraryBusy !== ''}
+                        onChange={async (event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = '';
+                          if (!file) return;
+                          setLibraryBusy('import');
+                          setLibraryMessage('');
+                          try {
+                            const data = JSON.parse(await file.text()) as {
+                              playlists?: { name?: string; description?: string; tracks?: Track[] }[];
+                              favorites?: Track[];
+                              profile?: { name?: string };
+                            };
+                            let addedLists = 0;
+                            for (const list of data.playlists ?? []) {
+                              if (!list?.name) continue;
+                              const created = await bridge().playlists.create(list.name, list.description ?? '');
+                              for (const track of list.tracks ?? []) {
+                                if (track?.id) await bridge().playlists.addTrack(created.id, track);
+                              }
+                              addedLists += 1;
+                            }
+                            let addedFavorites = 0;
+                            for (const track of data.favorites ?? []) {
+                              if (!track?.id) continue;
+                              await bridge().favorites.add(track);
+                              addedFavorites += 1;
+                            }
+                            if (!settings.displayName && data.profile?.name) settings.setDisplayName(data.profile.name);
+                            const fresh = await bridge().app.dbStats();
+                            setStats(fresh);
+                            setLibraryMessage(`Imported ${addedLists} playlists and ${addedFavorites} favorites.`);
+                          } catch (error) {
+                            setLibraryMessage(`Import failed: ${(error as Error).message}`);
+                          } finally {
+                            setLibraryBusy('');
+                          }
+                        }}
+                      />
+                    </label>
+                  </Row>
+                  {libraryMessage ? <p className="mt-2 text-[11.5px] text-muted">{libraryMessage}</p> : null}
+                </section>
+              ) : null}
+
               {tab === 'interface' ? (
                 <section>
                   <h3 className="mb-3 text-[15px] font-semibold">You</h3>
@@ -504,6 +712,34 @@ export function SettingsDialog() {
                   <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
                     Shown in the title bar and on empty screens.
                   </p>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Type &amp; rows</h3>
+                  <Row title="Interface font" description="The typeface for the whole interface. Artwork titles keep their own styling.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {(['sans', 'serif', 'mono'] as const).map((font) => (
+                        <button
+                          key={font}
+                          onClick={() => settings.setInterfaceFont(font)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] capitalize transition-colors',
+                            settings.interfaceFont === font ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {font}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Classic rounded rows" description="Rounder 20px track rows with a press animation, like Riff's card style.">
+                    <Toggle value={settings.classicCards} onChange={settings.setClassicCards} label="Classic rounded rows" />
+                  </Row>
+                  <Row title="Explicit tag" description="Show an E badge next to tracks marked explicit.">
+                    <Toggle
+                      value={settings.showExplicitTag}
+                      onChange={settings.setShowExplicitTag}
+                      label="Explicit tag"
+                    />
+                  </Row>
 
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">Accent</h3>
                   <Row
@@ -817,7 +1053,27 @@ export function SettingsDialog() {
 
               {tab === 'audio' ? (
                 <section>
-                  <div className="mb-3 flex items-center justify-between">
+                  <h3 className="mb-3 text-[15px] font-semibold">Output</h3>
+                  <Row
+                    title="Audio output device"
+                    description="Send playback to a specific speaker, headset or interface. Default follows Windows."
+                  >
+                    <select
+                      value={settings.outputDeviceId}
+                      onChange={(event) => settings.setOutputDeviceId(event.target.value)}
+                      aria-label="Audio output device"
+                      className="h-8 max-w-[220px] rounded-lg bg-surface px-2 text-[12px] text-text outline-none focus:ring-1 focus:ring-accent/40"
+                    >
+                      <option value="">System default</option>
+                      {devices.map((device) => (
+                        <option key={device.id} value={device.id}>
+                          {device.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Row>
+
+                  <div className="mt-7 mb-3 flex items-center justify-between">
                     <h3 className="text-[15px] font-semibold">Equalizer</h3>
                     <Button size="sm" variant="subtle" onClick={() => settings.resetAudio()}>
                       <RotateCcw size={13} /> Reset

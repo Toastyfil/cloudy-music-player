@@ -26,6 +26,7 @@ import { UpdateDialog } from '@/features/updates/ui/UpdateDialog';
 import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { useAudioBindings } from '@/features/player/hooks/useAudioBindings';
 import { bridge } from '@/shared/api/bridge';
+import { audioEngine } from '@/features/player/engine/audioEngine';
 
 export function App() {
   const navigate = useNavigate();
@@ -53,6 +54,25 @@ export function App() {
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
   // and the softer variants the UI derives from it.
+  // Output device: applied once settings are loaded and whenever it changes.
+  const outputDeviceId = useSettingsStore((s) => s.outputDeviceId);
+  useEffect(() => {
+    if (settingsLoaded) void audioEngine.setOutputDevice(outputDeviceId);
+  }, [outputDeviceId, settingsLoaded]);
+
+  // Interface typeface, Riff-style: a system sans by default, or a serif/mono.
+  const interfaceFont = useSettingsStore((s) => s.interfaceFont);
+  useEffect(() => {
+    const stack =
+      interfaceFont === 'serif'
+        ? 'Georgia, "Times New Roman", serif'
+        : interfaceFont === 'mono'
+          ? 'ui-monospace, "Cascadia Mono", Consolas, monospace'
+          : 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+    document.documentElement.style.setProperty('--font-ui', stack);
+    if (document.body) document.body.style.fontFamily = stack;
+  }, [interfaceFont]);
+
   // Your own CSS, applied after the app's styles so it always wins.
   const customCss = useSettingsStore((s) => s.customCss);
   useEffect(() => {

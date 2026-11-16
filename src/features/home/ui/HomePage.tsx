@@ -11,6 +11,8 @@ import { useUiStore } from '@/features/navigation/store/uiStore';
 import { formatTime } from '@/shared/lib/format';
 import { RowMenu } from '@/shared/ui/ContextMenu';
 import { useTrackMenu } from '@/features/library/hooks/useTrackMenu';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
+import { cn } from '@/shared/lib/cn';
 
 interface AlbumGroup {
   key: string;
@@ -25,6 +27,7 @@ export function HomePage() {
   const [recent, setRecent] = useState<LibraryTrack[]>([]);
   const [playlists, setPlaylists] = useState<LibraryPlaylist[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const classicCards = useSettingsStore((s) => s.classicCards);
   const queue = usePlayerStore((s) => s.queue);
   const index = usePlayerStore((s) => s.index);
   const playTracks = usePlayerStore((s) => s.playTracks);
@@ -231,7 +234,10 @@ export function HomePage() {
                 {recent.slice(0, 6).map((track) => (
                   <div
                     key={track.id}
-                    className="group flex h-14 items-center gap-3 rounded-lg px-3 transition-colors hover:bg-surface/70"
+                    className={cn(
+                      'group flex h-14 items-center gap-3 px-3 transition-all duration-150 hover:bg-surface/70',
+                      classicCards ? 'rounded-[20px] hover:scale-[1.004] active:scale-[0.999]' : 'rounded-lg',
+                    )}
                   >
                     <button onClick={() => void playNow(track)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                       <AlbumArt src={track.thumbnail} alt={track.title} size={40} rounded="md" />

@@ -377,6 +377,14 @@ class AudioEngine {
     }
   }
 
+  /** Route playback to a specific speaker or headset; '' is the system default. */
+  setOutputDevice(deviceId: string) {
+    const sink = (this.element as unknown as { setSinkId?: (id: string) => Promise<void> }).setSinkId;
+    if (typeof sink !== 'function') return Promise.resolve();
+    // The device may have been unplugged between listing and picking.
+    return sink.call(this.element, deviceId || '').catch(() => undefined);
+  }
+
   setMono(on: boolean) {
     this.monoSettings = Boolean(on);
     if (!this.monoNode) return;

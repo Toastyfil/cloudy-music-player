@@ -184,6 +184,8 @@ interface SettingsState {
   quitOnClose: boolean;
   /** Local profile name shown in Settings, next to the avatar initial. */
   displayName: string;
+  /** Local profile picture as a small data URL, or ''. */
+  avatar: string;
   /** Custom app background as a compressed data URL, or ''. */
   customBackground: string;
   /** Blur applied to the custom background, in px. */
@@ -198,6 +200,14 @@ interface SettingsState {
   lyricsAutoScroll: boolean;
   /** Fetch lyrics from lrclib at all. */
   onlineLyrics: boolean;
+  /** Audio output device id; '' follows the system default. */
+  outputDeviceId: string;
+  /** `[E]` badge next to explicit tracks. */
+  showExplicitTag: boolean;
+  /** Interface typeface: system sans, a serif, or the mono face. */
+  interfaceFont: 'sans' | 'serif' | 'mono';
+  /** Rounder, classic track rows. */
+  classicCards: boolean;
   /** Fade the player-bar timestamps out until the pointer is over them. */
   autohideTimestamps: boolean;
   /** Hide the title bar until the pointer reaches the top edge. */
@@ -238,6 +248,7 @@ interface SettingsState {
   setCornerRadius: (value: number) => void;
   setQuitOnClose: (on: boolean) => void;
   setDisplayName: (name: string) => void;
+  setAvatar: (dataUrl: string) => void;
   setCustomBackground: (dataUrl: string) => void;
   setBackgroundBlur: (value: number) => void;
   setBackgroundOpacity: (value: number) => void;
@@ -251,6 +262,10 @@ interface SettingsState {
   setOnlineLyrics: (on: boolean) => void;
   setTitleBarAutoHide: (on: boolean) => void;
   setAutohideTimestamps: (on: boolean) => void;
+  setShowExplicitTag: (on: boolean) => void;
+  setOutputDeviceId: (id: string) => void;
+  setInterfaceFont: (font: 'sans' | 'serif' | 'mono') => void;
+  setClassicCards: (on: boolean) => void;
   setCustomCss: (css: string) => void;
   setLyricsSpeed: (speed: number) => void;
   setGradientTightness: (percent: number) => void;
@@ -304,6 +319,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   cornerRadius: 12,
   quitOnClose: false,
   displayName: '',
+  avatar: '',
   customBackground: '',
   backgroundBlur: 12,
   backgroundOpacity: 100,
@@ -311,6 +327,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   lyricsKaraoke: true,
   lyricsAutoScroll: true,
   onlineLyrics: true,
+  outputDeviceId: '',
+  showExplicitTag: true,
+  interfaceFont: 'sans',
+  classicCards: false,
   autohideTimestamps: false,
   titleBarAutoHide: false,
   customCss: '',
@@ -357,6 +377,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         next.cornerRadius = Math.max(0, Math.min(20, Math.round(stored.cornerRadius)));
       if (typeof stored.quitOnClose === 'boolean') next.quitOnClose = stored.quitOnClose;
       if (typeof stored.displayName === 'string') next.displayName = stored.displayName.slice(0, 40);
+      if (typeof stored.avatar === 'string') next.avatar = stored.avatar;
       if (typeof stored.customBackground === 'string') next.customBackground = stored.customBackground;
       if (typeof stored.backgroundBlur === 'number')
         next.backgroundBlur = Math.max(0, Math.min(40, Math.round(stored.backgroundBlur)));
@@ -366,6 +387,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.lyricsKaraoke === 'boolean') next.lyricsKaraoke = stored.lyricsKaraoke;
       if (typeof stored.lyricsAutoScroll === 'boolean') next.lyricsAutoScroll = stored.lyricsAutoScroll;
       if (typeof stored.onlineLyrics === 'boolean') next.onlineLyrics = stored.onlineLyrics;
+      if (typeof stored.outputDeviceId === 'string') next.outputDeviceId = stored.outputDeviceId;
+      if (typeof stored.showExplicitTag === 'boolean') next.showExplicitTag = stored.showExplicitTag;
+      if (stored.interfaceFont === 'sans' || stored.interfaceFont === 'serif' || stored.interfaceFont === 'mono')
+        next.interfaceFont = stored.interfaceFont;
+      if (typeof stored.classicCards === 'boolean') next.classicCards = stored.classicCards;
       if (typeof stored.autohideTimestamps === 'boolean') next.autohideTimestamps = stored.autohideTimestamps;
       if (typeof stored.titleBarAutoHide === 'boolean') next.titleBarAutoHide = stored.titleBarAutoHide;
       if (typeof stored.customCss === 'string') next.customCss = stored.customCss.slice(0, 20_000);
@@ -566,6 +592,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     persistKey('displayName', displayName);
   },
 
+  setAvatar(dataUrl) {
+    set({ avatar: dataUrl });
+    persistKey('avatar', dataUrl);
+  },
+
   setCustomBackground(dataUrl) {
     set({ customBackground: dataUrl });
     persistKey('customBackground', dataUrl);
@@ -621,6 +652,27 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setOnlineLyrics(on) {
     set({ onlineLyrics: on });
     persistKey('onlineLyrics', on);
+  },
+
+  setOutputDeviceId(id) {
+    set({ outputDeviceId: id });
+    persistKey('outputDeviceId', id);
+    void audioEngine.setOutputDevice(id);
+  },
+
+  setShowExplicitTag(on) {
+    set({ showExplicitTag: on });
+    persistKey('showExplicitTag', on);
+  },
+
+  setInterfaceFont(font) {
+    set({ interfaceFont: font });
+    persistKey('interfaceFont', font);
+  },
+
+  setClassicCards(on) {
+    set({ classicCards: on });
+    persistKey('classicCards', on);
   },
 
   setAutohideTimestamps(on) {
