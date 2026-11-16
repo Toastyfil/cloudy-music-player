@@ -192,6 +192,11 @@ interface SettingsState {
   backgroundOpacity: number;
   /** Animated accent mesh behind the interface, like Riff's. */
   meshGradient: boolean;
+  /** Riff's accent controls: take the accent over from the theme. */
+  customAccentEnabled: boolean;
+  accentHue: number;
+  accentSaturation: number;
+  accentLightness: number;
   loaded: boolean;
   load: () => Promise<void>;
   setTheme: (id: string) => void;
@@ -225,6 +230,10 @@ interface SettingsState {
   setBackgroundBlur: (value: number) => void;
   setBackgroundOpacity: (value: number) => void;
   setMeshGradient: (on: boolean) => void;
+  setCustomAccentEnabled: (on: boolean) => void;
+  setAccentHue: (value: number) => void;
+  setAccentSaturation: (value: number) => void;
+  setAccentLightness: (value: number) => void;
   setLyricsSpeed: (speed: number) => void;
   setGradientTightness: (percent: number) => void;
   setVisualizerSensitivity: (value: number) => void;
@@ -281,6 +290,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   backgroundBlur: 12,
   backgroundOpacity: 100,
   meshGradient: true,
+  customAccentEnabled: false,
+  accentHue: 262,
+  accentSaturation: 72,
+  accentLightness: 64,
   loaded: false,
 
   async load() {
@@ -326,6 +339,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.backgroundOpacity === 'number')
         next.backgroundOpacity = Math.max(0, Math.min(100, Math.round(stored.backgroundOpacity)));
       if (typeof stored.meshGradient === 'boolean') next.meshGradient = stored.meshGradient;
+      if (typeof stored.customAccentEnabled === 'boolean') next.customAccentEnabled = stored.customAccentEnabled;
+      if (typeof stored.accentHue === 'number')
+        next.accentHue = Math.max(0, Math.min(360, Math.round(stored.accentHue)));
+      if (typeof stored.accentSaturation === 'number')
+        next.accentSaturation = Math.max(20, Math.min(100, Math.round(stored.accentSaturation)));
+      if (typeof stored.accentLightness === 'number')
+        next.accentLightness = Math.max(40, Math.min(85, Math.round(stored.accentLightness)));
       if (typeof stored.lyricsSpeed === 'number') next.lyricsSpeed = stored.lyricsSpeed;
       if (typeof stored.gradientTightness === 'number')
         next.gradientTightness = Math.max(2, Math.min(24, stored.gradientTightness));
@@ -536,6 +556,32 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMeshGradient(on) {
     set({ meshGradient: on });
     persistKey('meshGradient', on);
+  },
+
+  // A custom accent owns --accent, so cover-driven colour is switched off with
+  // it; otherwise every track change would repaint the accent behind your back.
+  setCustomAccentEnabled(on) {
+    set(on ? { customAccentEnabled: on, dynamicColor: false } : { customAccentEnabled: on });
+    persistKey('customAccentEnabled', on);
+    if (on) persistKey('dynamicColor', false);
+  },
+
+  setAccentHue(value) {
+    const accentHue = Math.max(0, Math.min(360, Math.round(value)));
+    set({ accentHue });
+    persistKey('accentHue', accentHue);
+  },
+
+  setAccentSaturation(value) {
+    const accentSaturation = Math.max(20, Math.min(100, Math.round(value)));
+    set({ accentSaturation });
+    persistKey('accentSaturation', accentSaturation);
+  },
+
+  setAccentLightness(value) {
+    const accentLightness = Math.max(40, Math.min(85, Math.round(value)));
+    set({ accentLightness });
+    persistKey('accentLightness', accentLightness);
   },
 
   setWaveRing(on) {

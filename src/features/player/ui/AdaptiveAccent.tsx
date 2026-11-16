@@ -11,8 +11,11 @@ import { selectCurrentTrack, usePlayerStore } from '@/features/player/store/play
 export function AdaptiveAccent() {
   const thumbnail = usePlayerStore((state) => selectCurrentTrack(state)?.thumbnail);
   const enabled = useSettingsStore((state) => state.dynamicColor);
+  // A custom accent owns --accent outright, so this effect must not clear it.
+  const customAccent = useSettingsStore((state) => state.customAccentEnabled);
 
   useEffect(() => {
+    if (customAccent) return;
     if (!enabled || !thumbnail) {
       setAccentOverride(null);
       return;
@@ -24,7 +27,7 @@ export function AdaptiveAccent() {
     return () => {
       cancelled = true;
     };
-  }, [enabled, thumbnail]);
+  }, [customAccent, enabled, thumbnail]);
 
   return null;
 }

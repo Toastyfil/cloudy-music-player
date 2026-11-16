@@ -19,6 +19,7 @@ import { prefetchLyrics } from '@/features/lyrics/api/lrclib';
 import { applyPendingAlignment, scheduleAutoAlign } from '@/features/lyrics/lib/autoAlign';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { applyInterfaceSettings } from '@/features/settings/lib/interfaceSettings';
+import { setAccentOverride } from '@/shared/config/themes';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useGlobalShortcuts } from '@/features/shortcuts/hooks/useGlobalShortcuts';
 import { UpdateDialog } from '@/features/updates/ui/UpdateDialog';
@@ -49,6 +50,25 @@ export function App() {
   useEffect(() => {
     applyInterfaceSettings({ reduceMotion, noHandCursor, uiScale, cornerRadius });
   }, [reduceMotion, noHandCursor, uiScale, cornerRadius]);
+
+  // Custom accent, Riff-style: hue, saturation and lightness drive the accent
+  // and the softer variants the UI derives from it.
+  const customAccentEnabled = useSettingsStore((s) => s.customAccentEnabled);
+  const accentHue = useSettingsStore((s) => s.accentHue);
+  const accentSaturation = useSettingsStore((s) => s.accentSaturation);
+  const accentLightness = useSettingsStore((s) => s.accentLightness);
+  const themeId = useSettingsStore((s) => s.themeId);
+  useEffect(() => {
+    if (!customAccentEnabled) {
+      setAccentOverride(null);
+      return;
+    }
+    setAccentOverride({
+      accent: `hsl(${accentHue} ${accentSaturation}% ${accentLightness}%)`,
+      accentStrong: `hsl(${accentHue} ${accentSaturation}% ${Math.max(32, accentLightness - 18)}%)`,
+      accentSoft: `hsl(${accentHue} ${accentSaturation}% ${accentLightness}% / 0.16)`,
+    });
+  }, [customAccentEnabled, accentHue, accentSaturation, accentLightness, themeId]);
 
   useGlobalShortcuts();
   useAudioBindings();

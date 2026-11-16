@@ -464,6 +464,67 @@ export function SettingsDialog() {
                     Shown in the title bar and on empty screens.
                   </p>
 
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Accent</h3>
+                  <Row
+                    title="Custom accent"
+                    description="Take the accent colour over from the theme and pick your own. Cover-driven colour is turned off while this is on."
+                  >
+                    <Toggle
+                      value={settings.customAccentEnabled}
+                      onChange={settings.setCustomAccentEnabled}
+                      label="Custom accent"
+                    />
+                  </Row>
+                  <Row title="Hue" description="Where the accent sits on the colour wheel.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={360}
+                        step={1}
+                        value={settings.accentHue}
+                        onChange={(event) => settings.setAccentHue(Number(event.target.value))}
+                        aria-label="Accent hue"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">{settings.accentHue}°</span>
+                    </div>
+                  </Row>
+                  <Row title="Saturation" description="How vivid the accent is.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={settings.accentSaturation}
+                        onChange={(event) => settings.setAccentSaturation(Number(event.target.value))}
+                        aria-label="Accent saturation"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">
+                        {settings.accentSaturation}%
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Lightness" description="Bright or deep; keep it light on dark themes for contrast.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={40}
+                        max={85}
+                        step={1}
+                        value={settings.accentLightness}
+                        onChange={(event) => settings.setAccentLightness(Number(event.target.value))}
+                        aria-label="Accent lightness"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-9 text-right text-[11px] tabular-nums text-muted">
+                        {settings.accentLightness}%
+                      </span>
+                    </div>
+                  </Row>
+
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">Background</h3>
                   <Row
                     title="Custom app background"
