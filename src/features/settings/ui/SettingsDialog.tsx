@@ -501,7 +501,111 @@ export function SettingsDialog() {
 
               {tab === 'interface' ? (
                 <section>
-                  <h3 className="mb-3 text-[15px] font-semibold">You</h3>
+                  <h3 className="mb-3 text-[15px] font-semibold">Layout</h3>
+                  <Row title="Search bar" description="A quick field in the title bar, or just the Search page.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['title', 'Title bar'],
+                        ['page', 'Page only'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setSearchPosition(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.searchPosition === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Now Playing bar" description="Dock the transport at the bottom, or pin it under the title bar.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['bottom', 'Bottom'],
+                        ['top', 'Top'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setNowPlayingPosition(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.nowPlayingPosition === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Icon style" description="Hairline outlines, or the same glyphs softly filled.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['line', 'Line'],
+                        ['solid', 'Solid'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setIconStyle(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.iconStyle === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Icon roundness" description="Pill-round icon buttons, or softly rounded squares.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['round', 'Round'],
+                        ['soft', 'Soft'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setIconRoundness(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.iconRoundness === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Table columns" description="What a track row shows besides the cover, title and artist.">
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {([
+                        ['Duration', settings.showDurationColumn, settings.setShowDurationColumn],
+                        ['Album', settings.showAlbumColumn, settings.setShowAlbumColumn],
+                        ['Favourites', settings.showFavoriteColumn, settings.setShowFavoriteColumn],
+                      ] as const).map(([label, on, toggle]) => (
+                        <button
+                          key={label}
+                          aria-pressed={on}
+                          onClick={() => toggle(!on)}
+                          className={cn(
+                            'rounded-full border px-2.5 py-1 text-[11.5px] transition-colors',
+                            on
+                              ? 'border-accent/40 bg-accent/15 text-accent'
+                              : 'border-line text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Wavy seek bar" description="The progress line ripples with the bass; off leaves a plain rule.">
+                    <Toggle value={settings.wavySeekBar} onChange={settings.setWavySeekBar} label="Wavy seek bar" />
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">You</h3>
                   <Row title="Profile" description="A local name and initial for your player. Nothing leaves this computer.">
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-[13px] font-semibold uppercase text-accent">

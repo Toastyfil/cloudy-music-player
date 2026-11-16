@@ -1,6 +1,6 @@
 import { Loader2, Search as SearchIcon, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { AlbumSummary, ArtistSummary, PlaylistSummary, SearchAll, Track } from '@/shared/api/contracts';
 import { searchApi } from '@/shared/api/client';
 import { AlbumArt } from '@/shared/ui/AlbumArt';
@@ -82,7 +82,13 @@ function PlaylistRow({ playlist, onOpen }: { playlist: PlaylistSummary; onOpen: 
 }
 
 export function SearchPage() {
-  const [query, setQuery] = useState('');
+  // The title-bar field lands here as ?q=…, so the query survives the jump.
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(() => params.get('q') ?? '');
+  const initialQuery = params.get('q');
+  useEffect(() => {
+    if (initialQuery) setQuery(initialQuery);
+  }, [initialQuery]);
   const [tab, setTab] = useState<Tab>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

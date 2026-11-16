@@ -27,6 +27,7 @@ import { useT } from '@/shared/lib/i18n';
 export const PlayerBar = memo(function PlayerBar() {
   const t = useT();
   const playButtonBackground = useSettingsStore((s) => s.playButtonBackground);
+  const atTop = useSettingsStore((s) => s.nowPlayingPosition) === 'top';
   const track = usePlayerStore(selectCurrentTrack);
   const playing = usePlayerStore((s) => s.playing);
   const buffering = usePlayerStore((s) => s.buffering);
@@ -50,7 +51,12 @@ export const PlayerBar = memo(function PlayerBar() {
   const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
   return (
-    <footer className="relative z-30 flex h-[72px] shrink-0 items-center gap-4 border-t border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-xl">
+    <footer
+      className={cn(
+        'relative z-30 flex h-[72px] shrink-0 items-center gap-4 border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-xl',
+        atTop ? 'border-b' : 'border-t',
+      )}
+    >
       {/* Track */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <WavyProgressRing

@@ -226,6 +226,22 @@ interface SettingsState {
   showLyricsWarnings: boolean;
   /** Filled circle behind the play/pause glyph. */
   playButtonBackground: boolean;
+  /** Compact search field in the title bar, or the field only on the Search page. */
+  searchPosition: 'title' | 'page';
+  /** Player bar docked at the bottom, or right under the title bar. */
+  nowPlayingPosition: 'bottom' | 'top';
+  /** Stroke glyphs, or softly filled ones. */
+  iconStyle: 'line' | 'solid';
+  /** Icon buttons: pill-round or softly rounded. */
+  iconRoundness: 'round' | 'soft';
+  /** Duration column in track tables. */
+  showDurationColumn: boolean;
+  /** Album column under the artist in track tables. */
+  showAlbumColumn: boolean;
+  /** Favourite heart column in track tables. */
+  showFavoriteColumn: boolean;
+  /** Wave-shaped seek bar instead of a flat rule. */
+  wavySeekBar: boolean;
   /** Fade the player-bar timestamps out until the pointer is over them. */
   autohideTimestamps: boolean;
   /** Hide the title bar until the pointer reaches the top edge. */
@@ -290,6 +306,14 @@ interface SettingsState {
   setShowSourceBadge: (on: boolean) => void;
   setShowLyricsWarnings: (on: boolean) => void;
   setPlayButtonBackground: (on: boolean) => void;
+  setSearchPosition: (position: 'title' | 'page') => void;
+  setNowPlayingPosition: (position: 'bottom' | 'top') => void;
+  setIconStyle: (style: 'line' | 'solid') => void;
+  setIconRoundness: (roundness: 'round' | 'soft') => void;
+  setShowDurationColumn: (on: boolean) => void;
+  setShowAlbumColumn: (on: boolean) => void;
+  setShowFavoriteColumn: (on: boolean) => void;
+  setWavySeekBar: (on: boolean) => void;
   resetInterface: () => void;
   setOutputDeviceId: (id: string) => void;
   setInterfaceFont: (font: 'sans' | 'serif' | 'mono') => void;
@@ -364,6 +388,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showSourceBadge: true,
   showLyricsWarnings: true,
   playButtonBackground: true,
+  searchPosition: 'title',
+  nowPlayingPosition: 'bottom',
+  iconStyle: 'line',
+  iconRoundness: 'round',
+  showDurationColumn: true,
+  showAlbumColumn: true,
+  showFavoriteColumn: true,
+  wavySeekBar: true,
   outputDeviceId: '',
   showExplicitTag: true,
   interfaceFont: 'sans',
@@ -436,6 +468,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.showLyricsWarnings === 'boolean') next.showLyricsWarnings = stored.showLyricsWarnings;
       if (typeof stored.playButtonBackground === 'boolean')
         next.playButtonBackground = stored.playButtonBackground;
+      if (stored.searchPosition === 'title' || stored.searchPosition === 'page')
+        next.searchPosition = stored.searchPosition;
+      if (stored.nowPlayingPosition === 'bottom' || stored.nowPlayingPosition === 'top')
+        next.nowPlayingPosition = stored.nowPlayingPosition;
+      if (stored.iconStyle === 'line' || stored.iconStyle === 'solid') next.iconStyle = stored.iconStyle;
+      if (stored.iconRoundness === 'round' || stored.iconRoundness === 'soft')
+        next.iconRoundness = stored.iconRoundness;
+      if (typeof stored.showDurationColumn === 'boolean') next.showDurationColumn = stored.showDurationColumn;
+      if (typeof stored.showAlbumColumn === 'boolean') next.showAlbumColumn = stored.showAlbumColumn;
+      if (typeof stored.showFavoriteColumn === 'boolean') next.showFavoriteColumn = stored.showFavoriteColumn;
+      if (typeof stored.wavySeekBar === 'boolean') next.wavySeekBar = stored.wavySeekBar;
       if (typeof stored.outputDeviceId === 'string') next.outputDeviceId = stored.outputDeviceId;
       if (typeof stored.showExplicitTag === 'boolean') next.showExplicitTag = stored.showExplicitTag;
       if (stored.interfaceFont === 'sans' || stored.interfaceFont === 'serif' || stored.interfaceFont === 'mono')
@@ -768,6 +811,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       showSourceBadge: true,
       showLyricsWarnings: true,
       playButtonBackground: true,
+      searchPosition: 'title' as const,
+      nowPlayingPosition: 'bottom' as const,
+      iconStyle: 'line' as const,
+      iconRoundness: 'round' as const,
+      showDurationColumn: true,
+      showAlbumColumn: true,
+      showFavoriteColumn: true,
+      wavySeekBar: true,
       reduceMotion: false,
       noHandCursor: false,
       uiScale: 1,
@@ -801,6 +852,46 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setClassicCards(on) {
     set({ classicCards: on });
     persistKey('classicCards', on);
+  },
+
+  setSearchPosition(position) {
+    set({ searchPosition: position });
+    persistKey('searchPosition', position);
+  },
+
+  setNowPlayingPosition(position) {
+    set({ nowPlayingPosition: position });
+    persistKey('nowPlayingPosition', position);
+  },
+
+  setIconStyle(style) {
+    set({ iconStyle: style });
+    persistKey('iconStyle', style);
+  },
+
+  setIconRoundness(roundness) {
+    set({ iconRoundness: roundness });
+    persistKey('iconRoundness', roundness);
+  },
+
+  setShowDurationColumn(on) {
+    set({ showDurationColumn: on });
+    persistKey('showDurationColumn', on);
+  },
+
+  setShowAlbumColumn(on) {
+    set({ showAlbumColumn: on });
+    persistKey('showAlbumColumn', on);
+  },
+
+  setShowFavoriteColumn(on) {
+    set({ showFavoriteColumn: on });
+    persistKey('showFavoriteColumn', on);
+  },
+
+  setWavySeekBar(on) {
+    set({ wavySeekBar: on });
+    persistKey('wavySeekBar', on);
   },
 
   setAutohideTimestamps(on) {

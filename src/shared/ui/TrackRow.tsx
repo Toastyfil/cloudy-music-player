@@ -63,6 +63,9 @@ export function TrackRow({
   const showExplicit = useSettingsStore((s) => s.showExplicitTag);
   const classicCards = useSettingsStore((s) => s.classicCards);
   const showSourceBadge = useSettingsStore((s) => s.showSourceBadge);
+  const showDurationColumn = useSettingsStore((s) => s.showDurationColumn);
+  const showAlbumColumn = useSettingsStore((s) => s.showAlbumColumn);
+  const showFavoriteColumn = useSettingsStore((s) => s.showFavoriteColumn);
 
   return (
     <div
@@ -126,7 +129,9 @@ export function TrackRow({
         </span>
         <span className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted">
           <span className="truncate">{subtitleOverride ?? track.artist}</span>
-          {showAlbum && track.album?.name ? <span className="truncate text-faint">· {track.album.name}</span> : null}
+          {showAlbum && showAlbumColumn && track.album?.name ? (
+            <span className="truncate text-faint">· {track.album.name}</span>
+          ) : null}
           {showSourceBadge && isExternalTrack(track) ? (
             <span
               className="shrink-0 rounded bg-surface px-1.5 py-[1px] text-[9.5px] font-medium uppercase tracking-[0.08em] text-faint"
@@ -138,10 +143,12 @@ export function TrackRow({
         </span>
       </span>
 
-      <span className="w-12 shrink-0 text-right text-[12.5px] tabular-nums text-muted">
-        {track.duration ? formatTime(track.duration) : '—'}
-      </span>
-      {showFavorite ? (
+      {showDurationColumn ? (
+        <span className="w-12 shrink-0 text-right text-[12.5px] tabular-nums text-muted">
+          {track.duration ? formatTime(track.duration) : '—'}
+        </span>
+      ) : null}
+      {showFavorite && showFavoriteColumn ? (
         <span className={cn('shrink-0 transition-opacity', favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
           <FavoriteToggle track={track} />
         </span>

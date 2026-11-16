@@ -15,7 +15,7 @@ const SIZES: Record<Size, string> = {
   sm: 'h-8 px-3 text-[13px] rounded-full gap-1.5',
   md: 'h-9 px-4 text-sm rounded-full gap-2',
   lg: 'h-11 px-6 text-sm rounded-full gap-2',
-  icon: 'h-8 w-8 rounded-full justify-center',
+  icon: 'h-8 w-8 rounded-[var(--icon-radius,9999px)] justify-center',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

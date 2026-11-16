@@ -1,5 +1,6 @@
-import { Minus, Square, X, Copy, LogOut } from 'lucide-react';
+import { Minus, Search, Square, X, Copy, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { bridge, isElectron } from '@/shared/api/bridge';
 import { Wordmark } from '@/shared/ui/Logo';
 import { useUiStore } from '@/features/navigation/store/uiStore';
@@ -12,6 +13,9 @@ export function TitleBar() {
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
   const transparent = useSettingsStore((s) => s.windowTransparent);
   const autoHide = useSettingsStore((s) => s.titleBarAutoHide);
+  const searchInTitle = useSettingsStore((s) => s.searchPosition) === 'title';
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     void bridge()
@@ -64,10 +68,30 @@ export function TitleBar() {
         <Wordmark className="text-[13px] text-text/90" />
       </div>
 
+      {searchInTitle ? (
+        <form
+          className="no-drag mx-3 flex h-7 min-w-0 max-w-[340px] flex-1 items-center gap-2 rounded-full border border-line bg-surface/60 px-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = query.trim();
+            if (value) navigate(`/search?q=${encodeURIComponent(value)}`);
+          }}
+        >
+          <Search size={13} className="shrink-0 text-faint" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search songs, artists, albums"
+            aria-label="Quick search"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-text outline-none placeholder:text-faint"
+          />
+        </form>
+      ) : null}
+
       <div className="flex items-center gap-1">
         <button
           onClick={() => setSettingsOpen(true)}
-          className="no-drag mr-1.5 flex h-7 w-7 items-center justify-center rounded-[7px] bg-white/8 text-white/85 transition-colors duration-150 hover:bg-white/14 hover:text-white focus-ring"
+          className="no-drag mr-1.5 flex h-7 w-7 items-center justify-center rounded-[var(--icon-radius,7px)] bg-white/8 text-white/85 transition-colors duration-150 hover:bg-white/14 hover:text-white focus-ring"
           aria-label="Settings"
           title="Settings (Ctrl+,)"
         >

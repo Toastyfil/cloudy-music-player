@@ -55,6 +55,9 @@ export function App() {
   const backgroundFit = useSettingsStore((s) => s.backgroundFit);
   const backgroundImage = coverBackground && track?.thumbnail ? track.thumbnail : customBackground;
   const showTrackNumbers = useSettingsStore((s) => s.showTrackNumbers);
+  const iconStyle = useSettingsStore((s) => s.iconStyle);
+  const iconRoundness = useSettingsStore((s) => s.iconRoundness);
+  const nowPlayingPosition = useSettingsStore((s) => s.nowPlayingPosition);
 
   useEffect(() => {
     applyInterfaceSettings({
@@ -64,8 +67,10 @@ export function App() {
       cornerRadius,
       rowSize,
       trackNumbers: showTrackNumbers,
+      iconStyle,
+      iconRoundness,
     });
-  }, [reduceMotion, noHandCursor, uiScale, cornerRadius, rowSize, showTrackNumbers]);
+  }, [reduceMotion, noHandCursor, uiScale, cornerRadius, rowSize, showTrackNumbers, iconStyle, iconRoundness]);
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
   // and the softer variants the UI derives from it.
@@ -216,6 +221,8 @@ export function App() {
       </div>
       <TitleBar />
 
+      {nowPlayingPosition === 'top' ? <PlayerBar /> : null}
+
       <div className="relative z-10 flex min-h-0 flex-1">
         <Sidebar />
         <main className="min-w-0 flex-1 overflow-y-auto">
@@ -237,7 +244,7 @@ export function App() {
       {settingsLoaded && !onboardingComplete ? <OnboardingDialog /> : null}
 
       <AdaptiveAccent />
-      <PlayerBar />
+      {nowPlayingPosition === 'bottom' ? <PlayerBar /> : null}
       <FullscreenLyrics />
       <SettingsDialog />
       <ImportDialog />

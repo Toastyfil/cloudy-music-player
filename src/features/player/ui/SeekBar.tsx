@@ -143,6 +143,22 @@ function WavyTrack({
   return <canvas ref={canvasRef} aria-hidden className="pointer-events-none h-4 w-full" />;
 }
 
+/** The plain rule used when the wavy seek bar is switched off. */
+function FlatTrack({ progress, hoverProgress }: { progress: number; hoverProgress: number | null }) {
+  return (
+    <div className="relative h-[3px] w-full rounded-full bg-surface" aria-hidden>
+      <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${progress}%` }} />
+      {hoverProgress != null ? (
+        <span className="absolute -top-1 h-5 w-px bg-text/40" style={{ left: `${hoverProgress}%` }} />
+      ) : null}
+      <span
+        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+        style={{ left: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
 /**
  * Amber scrubber. While dragging it shows the drag position; otherwise it
  * follows the audio element directly via rAF so the fill is perfectly smooth
@@ -158,6 +174,7 @@ export function SeekBar({ compact = false, onDark = false }: { compact?: boolean
   const [hoverValue, setHoverValue] = useState<number | null>(null);
   const playing = usePlayerStore((s) => s.playing);
   const autoHideTimes = useSettingsStore((state) => state.autohideTimestamps);
+  const wavy = useSettingsStore((state) => state.wavySeekBar);
 
   useEffect(() => {
     let frame = 0;
@@ -233,7 +250,11 @@ export function SeekBar({ compact = false, onDark = false }: { compact?: boolean
         }}
         className="group relative flex h-4 flex-1 cursor-pointer items-center"
       >
-        <WavyTrack progress={progress} hoverProgress={hoverProgress} playing={playing} />
+        {wavy ? (
+          <WavyTrack progress={progress} hoverProgress={hoverProgress} playing={playing} />
+        ) : (
+          <FlatTrack progress={progress} hoverProgress={hoverProgress} />
+        )}
       </div>
       <span
         className={cn(

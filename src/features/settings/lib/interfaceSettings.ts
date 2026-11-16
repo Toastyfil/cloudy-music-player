@@ -10,6 +10,8 @@ export type InterfaceSettings = {
   cornerRadius: number;
   rowSize: number;
   trackNumbers: boolean;
+  iconStyle: 'line' | 'solid';
+  iconRoundness: 'round' | 'soft';
 };
 
 export function applyInterfaceSettings(settings: InterfaceSettings) {
@@ -18,6 +20,8 @@ export function applyInterfaceSettings(settings: InterfaceSettings) {
   root.dataset.reduceMotion = settings.reduceMotion ? 'on' : 'off';
   root.dataset.noHand = settings.noHandCursor ? 'on' : 'off';
   root.dataset.trackNumbers = settings.trackNumbers ? 'on' : 'off';
+  root.dataset.iconStyle = settings.iconStyle;
+  root.style.setProperty('--icon-radius', settings.iconRoundness === 'round' ? '9999px' : '10px');
   root.style.setProperty('--ui-scale', String(settings.uiScale));
   root.style.setProperty('--radius-card', `${settings.cornerRadius}px`);
   root.style.setProperty('--radius-xl2', `${settings.cornerRadius + 6}px`);

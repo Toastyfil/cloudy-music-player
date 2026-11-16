@@ -22,7 +22,7 @@ const NAV: { to: string; key: TranslationKey; Icon: NavIcon; end?: boolean }[] =
 ];
 
 const ITEM =
-  'group relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-200 focus-ring [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-105 active:[&>svg]:scale-95';
+  'group relative flex h-10 w-10 items-center justify-center rounded-[var(--icon-radius,0.75rem)] transition-colors duration-200 focus-ring [&>svg]:transition-transform [&>svg]:duration-150 hover:[&>svg]:scale-105 active:[&>svg]:scale-95';
 
 /** Hover label that opens to the right of the rail. */
 function Tip({ children }: { children: string }) {
