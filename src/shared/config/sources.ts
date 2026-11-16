@@ -1,7 +1,7 @@
 import type { Track } from '@/shared/api/contracts';
 
 /** The catalogs Cloudy can search. Playback always goes through Cloudy's engine. */
-export type CatalogSource = 'youtube' | 'soundcloud' | 'deezer' | 'apple';
+export type CatalogSource = 'youtube' | 'soundcloud' | 'deezer' | 'apple' | 'audius';
 
 export interface CatalogSourceInfo {
   id: CatalogSource;
@@ -16,6 +16,7 @@ export const CATALOG_SOURCES: CatalogSourceInfo[] = [
   { id: 'soundcloud', label: 'SoundCloud', hint: 'Uploads, edits and remixes', trackSource: 'soundcloud' },
   { id: 'deezer', label: 'Deezer', hint: 'Full catalog, matched track by track', trackSource: 'deezer' },
   { id: 'apple', label: 'Apple Music', hint: 'Full catalog, matched track by track', trackSource: 'apple' },
+  { id: 'audius', label: 'Audius', hint: 'Independent artists, plays from Audius directly', trackSource: 'audius' },
 ];
 
 export const DEFAULT_SOURCE: CatalogSource = 'youtube';

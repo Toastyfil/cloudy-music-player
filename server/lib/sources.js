@@ -18,6 +18,9 @@ export const SOURCES = [
   { id: 'soundcloud', name: 'SoundCloud', catalog: 'Uploads and remixes' },
   { id: 'deezer', name: 'Deezer', catalog: 'Full catalog' },
   { id: 'apple', name: 'Apple Music', catalog: 'Full catalog' },
+  // Audius needs no account and streams its own audio, so it is the one source
+  // that plays without being matched to a YouTube id first.
+  { id: 'audius', name: 'Audius', catalog: 'Independent artists' },
 ];
 
 export const SOURCE_IDS = new Set(SOURCES.map((source) => source.id));
@@ -147,6 +150,32 @@ async function soundcloudSearch(query, limit = 25) {
 
 /* ----------------------------------------------------------------- deezer --- */
 
+/* ---------------------------------------------------------------- audius --- */
+
+async function audiusSearch(query, limit = 25) {
+  const data = await getJson(
+    `https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(query)}&app_name=Cloudy&limit=${limit}`,
+  );
+  return (data?.data ?? [])
+    // Only streamable tracks: gated or delisted ones 404 on the stream endpoint,
+    // so they would show up as unplayable rows.
+    .filter((item) => item?.id && item?.title && !item.is_delete && item.is_streamable && !item.is_stream_gated)
+    .map((item) => {
+      const track = makeTrack('audius', {
+        id: item.id,
+        title: item.title,
+        artist: item.user?.name || item.user?.handle || 'Audius artist',
+        album: null,
+        duration: item.duration,
+        thumbnail: item.artwork?.['480x480'] ?? item.artwork?.['150x150'] ?? null,
+      });
+      // Self-playing: the audio id is the Audius track, not a YouTube match.
+      if (track) track.videoId = `audius_${item.id}`;
+      return track;
+    })
+    .filter(Boolean);
+}
+
 async function deezerSearch(query, limit = 25) {
   const data = await getJson(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=${limit}`);
   return (data?.data ?? [])
@@ -190,7 +219,12 @@ async function appleSearch(query, limit = 25) {
 
 /* ----------------------------------------------------------------- search --- */
 
-const SEARCHERS = { soundcloud: soundcloudSearch, deezer: deezerSearch, apple: appleSearch };
+const SEARCHERS = {
+  soundcloud: soundcloudSearch,
+  deezer: deezerSearch,
+  apple: appleSearch,
+  audius: audiusSearch,
+};
 
 /** Catalog search for one source. YouTube Music keeps its own house rules. */
 export async function searchSource(source, query, type = 'song') {

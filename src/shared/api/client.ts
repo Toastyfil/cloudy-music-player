@@ -117,6 +117,8 @@ const resolved = new Map<string, string>();
 export const resolveApi = {
   known(track: Track): string | null {
     if (!isExternalTrack(track)) return track.videoId ?? track.id;
+    // Audius plays its own audio, so its catalog results already carry the id.
+    if (track.source === 'audius' && track.videoId) return track.videoId;
     return resolved.get(track.id) ?? null;
   },
   /** Forget a session match so the next attempt asks the service again. */
@@ -153,6 +155,8 @@ export const resolveApi = {
   async playableId(track: Track): Promise<string> {
     const cached = resolved.get(track.id);
     if (cached) return cached;
+    // Audius brings its own audio id; nothing to match, nothing to wait for.
+    if (track.source === 'audius' && track.videoId) return track.videoId;
     if (!isExternalTrack(track)) return track.videoId ?? track.id;
     const match = await request<{ videoId: string }>('/resolve', {
       method: 'POST',

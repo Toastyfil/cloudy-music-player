@@ -98,12 +98,53 @@ const jobs = new Map();
  * Start (or join) the download for a video. Resolves when the file is complete.
  * `onReady` is called as soon as a usable file exists on disk.
  */
+/**
+ * Audius serves a plain mp3 per track, so there is no extractor involved: fetch
+ * it into the same cache under the same id shape and the rest of playback does
+ * not care where the bytes came from.
+ */
+function ensureAudiusTrack(videoId, onReady) {
+  const rawId = String(videoId).slice('audius_'.length);
+  const existing = jobs.get(videoId);
+  if (existing) {
+    if (onReady) existing.listeners.push(onReady);
+    return existing.promise;
+  }
+  const target = path.join(cacheDir, `${videoId}.mp3`);
+  const partial = path.join(cacheDir, `${videoId}.part.mp3`);
+  const job = { listeners: onReady ? [onReady] : [], promise: null };
+  jobs.set(videoId, job);
+
+  job.promise = (async () => {
+    const res = await fetch(`https://api.audius.co/v1/tracks/${encodeURIComponent(rawId)}/stream?app_name=Cloudy`, {
+      redirect: 'follow',
+    });
+    if (!res.ok || !res.body) throw new Error(`Audius responded ${res.status}`);
+    await fsp.mkdir(cacheDir, { recursive: true });
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length < 1024) throw new Error('Audius returned an empty stream');
+    await fsp.writeFile(partial, bytes);
+    await fsp.rename(partial, target);
+    const ready = findReady(videoId) ?? { file: target, ext: '.mp3', size: bytes.length };
+    for (const listener of job.listeners.splice(0)) listener(ready);
+    jobs.delete(videoId);
+    return ready;
+  })().catch((error) => {
+    jobs.delete(videoId);
+    throw error;
+  });
+
+  return job.promise;
+}
+
 export function ensureTrack(videoId, { onReady } = {}) {
   const ready = findReady(videoId);
   if (ready) {
     onReady?.(ready);
     return Promise.resolve(ready);
   }
+
+  if (String(videoId).startsWith('audius_')) return ensureAudiusTrack(videoId, onReady);
 
   const existing = jobs.get(videoId);
   if (existing) {
