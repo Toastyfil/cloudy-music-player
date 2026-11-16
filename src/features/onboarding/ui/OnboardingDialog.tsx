@@ -65,7 +65,7 @@ export function OnboardingDialog() {
   const cards = previewCards();
 
   return (
-    <div className="fixed inset-0 z-[98] flex items-center justify-center bg-black/70 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[98] flex items-center justify-center bg-black/70 backdrop-blur-[var(--panel-blur)]">
       {/* Diagonal stripes, the same motif as the title screen. */}
       <div
         aria-hidden

@@ -57,7 +57,7 @@ export const PlayerBar = memo(function PlayerBar() {
   return (
     <footer
       className={cn(
-        'relative z-30 flex h-[72px] shrink-0 items-center gap-4 overflow-hidden border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-xl',
+        'relative z-30 flex h-[72px] shrink-0 items-center gap-4 overflow-hidden border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-[var(--panel-blur)]',
         atTop ? 'border-b' : 'border-t',
       )}
     >

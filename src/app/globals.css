@@ -338,12 +338,6 @@ html[data-reduce-motion='on'] .cloudy-cover-shape {
   animation: none !important;
 }
 
-/* Floating panel blur (Settings → Interface). */
-.backdrop-blur-xl {
-  backdrop-filter: blur(var(--panel-blur, 10px));
-  -webkit-backdrop-filter: blur(var(--panel-blur, 10px));
-}
-
 /* Hide the title bar until the pointer comes near the top edge (Settings →
    Interface → Hide title bar). The bar keeps its space so nothing jumps. */
 header[data-autohide='on'] {

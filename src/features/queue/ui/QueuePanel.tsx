@@ -32,7 +32,7 @@ export function QueuePanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 340, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-20 flex w-[330px] shrink-0 flex-col border-l border-line bg-[color:var(--bg)]/88 backdrop-blur-xl"
+          className="relative z-20 flex w-[330px] shrink-0 flex-col border-l border-line bg-[color:var(--bg)]/88 backdrop-blur-[var(--panel-blur)]"
         >
           <header className="flex items-center justify-between px-5 pb-3 pt-5">
             <div>

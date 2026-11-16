@@ -544,7 +544,7 @@ export function LyricsPanel({ onClose, onFullscreen }: { onClose: () => void; on
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 360, opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-20 flex w-[350px] shrink-0 flex-col border-l border-line bg-[color:var(--bg)]/85 backdrop-blur-xl"
+      className="relative z-20 flex w-[350px] shrink-0 flex-col border-l border-line bg-[color:var(--bg)]/85 backdrop-blur-[var(--panel-blur)]"
     >
       {nowPlayingBanner && track?.thumbnail ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 overflow-hidden">
