@@ -6,6 +6,7 @@ import { sourceLabel, isExternalTrack } from '@/shared/config/sources';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { AlbumArt } from './AlbumArt';
+import { trackRowSurface } from './trackRowStyle';
 import type { Track } from '@/shared/api/contracts';
 
 function FavoriteToggle({ track }: { track: Track }) {
@@ -77,12 +78,7 @@ export function TrackRow({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ height: 'var(--row-h, 56px)' }}
-      className={cn(
-        'cloudy-track-row group flex w-full items-center gap-3 px-3 text-left transition-colors duration-150 focus-ring',
-        classicCards ? 'rounded-[20px] hover:scale-[1.004] hover:bg-surface/80 active:scale-[0.999]' : 'rounded-lg',
-        active ? 'bg-accent-soft' : 'hover:bg-surface/70',
-        className,
-      )}
+      className={cn(trackRowSurface({ classic: classicCards, active }), 'cloudy-track-row w-full text-left', className)}
     >
       {(index !== undefined || showArt) && (
         <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
