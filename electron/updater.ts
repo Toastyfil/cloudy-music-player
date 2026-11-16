@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { execFile } from 'node:child_process';
+import { execFile, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -314,6 +314,72 @@ function windowsInstallRoot() {
   return path.basename(dir).startsWith('app-') ? path.dirname(dir) : dir;
 }
 
+/** Proof that a freshly started instance actually opened its window. */
+function startupMarkerPath() {
+  return path.join(app.getPath('userData'), 'updates', 'startup.json');
+}
+
+/** Copied builds that never started, so a broken one is not retried forever. */
+function adoptSkipPath() {
+  return path.join(app.getPath('userData'), 'updates', 'adopt-skip.json');
+}
+
+async function readAdoptSkip(): Promise<string[]> {
+  const raw = await fs.readFile(adoptSkipPath(), 'utf8').catch(() => null);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as { versions?: unknown };
+    return Array.isArray(parsed.versions) ? parsed.versions.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+async function rememberBrokenCopy(version: string) {
+  const versions = [...new Set([...(await readAdoptSkip()), version])].slice(-5);
+  await fs.writeFile(adoptSkipPath(), JSON.stringify({ versions }), 'utf8').catch(() => undefined);
+}
+
+/**
+ * Called once this instance has a window, so the instance that handed over can
+ * tell the difference between "started" and "silently died".
+ */
+export async function markUpdateStartup() {
+  if (!app.isPackaged) return;
+  const file = startupMarkerPath();
+  await fs.mkdir(path.dirname(file), { recursive: true }).catch(() => undefined);
+  await fs
+    .writeFile(file, JSON.stringify({ pid: process.pid, version: app.getVersion(), at: Date.now() }), 'utf8')
+    .catch(() => undefined);
+}
+
+/** Resolves true only when the spawned copy reports the same pid as running. */
+async function waitForStartup(child: ChildProcess, timeoutMs: number) {
+  const pid = child.pid;
+  if (pid === undefined) return false;
+  let gone = false;
+  child.once('exit', () => {
+    gone = true;
+  });
+  child.once('error', () => {
+    gone = true;
+  });
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (gone) return false;
+    const raw = await fs.readFile(startupMarkerPath(), 'utf8').catch(() => null);
+    if (raw) {
+      try {
+        if ((JSON.parse(raw) as { pid?: number }).pid === pid) return true;
+      } catch {
+        /* half-written marker: check again */
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return false;
+}
+
 /**
  * Switches a launch from an outdated copy to the newest versioned one.
  *
@@ -321,17 +387,24 @@ function windowsInstallRoot() {
  * executable that existed before an update. Without this, opening Cloudy from
  * such a shortcut runs the old build again, which checks GitHub, sees a newer
  * release and offers the update the user just installed — over and over.
+ *
+ * It stays fail-safe: this instance only quits once the newer copy has proven
+ * it opened a window. A copy that dies (missing files, a blocked binary) leaves
+ * the current one running, and is remembered so it is not tried again on every
+ * launch.
  */
 export async function adoptNewerInstall(): Promise<boolean> {
   if (process.platform !== 'win32' || !app.isPackaged) return false;
   const dir = path.dirname(process.execPath);
   if (path.basename(dir).startsWith('app-')) return false;
   const root = dir;
+  const skip = await readAdoptSkip();
   let best: { version: string; exe: string } | null = null;
   for (const entry of await fs.readdir(root).catch(() => [] as string[])) {
     if (!entry.startsWith('app-')) continue;
     const candidate = entry.slice('app-'.length);
     if (!isNewer(candidate, app.getVersion())) continue;
+    if (skip.includes(candidate)) continue;
     const exe = path.join(root, entry, 'cloudy.exe');
     const exists = await fs
       .stat(exe)
@@ -341,9 +414,25 @@ export async function adoptNewerInstall(): Promise<boolean> {
     if (!best || isNewer(candidate, best.version)) best = { version: candidate, exe };
   }
   if (!best) return false;
+
+  await fs.rm(startupMarkerPath(), { force: true }).catch(() => undefined);
   await logInstall(`adopting ${best.version} from ${best.exe} (running ${app.getVersion()})`);
   const { spawn } = await import('node:child_process');
-  spawn(best.exe, [...process.argv.slice(1), '--after-update'], { detached: true, stdio: 'ignore' }).unref();
+  const child = spawn(best.exe, [...process.argv.slice(1), '--after-update'], { detached: true, stdio: 'ignore' });
+  child.unref();
+
+  const started = await waitForStartup(child, 12_000);
+  if (!started) {
+    await logInstall(`adoption of ${best.version} failed; keeping ${app.getVersion()} running`);
+    await rememberBrokenCopy(best.version);
+    try {
+      child.kill();
+    } catch {
+      /* already gone */
+    }
+    return false;
+  }
+
   app.quit();
   return true;
 }

@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { initDatabase, library, favorites, playlists, settings, queueState, databaseStats, closeDatabase } from './db';
 import { initCache, cacheTrack, cacheStats, clearCache, cachedPathFor, removeCached } from './cache';
 import { presence } from './discord';
-import { adoptNewerInstall, registerUpdater } from './updater';
+import { adoptNewerInstall, markUpdateStartup, registerUpdater } from './updater';
 import { routeForLink } from '../src/shared/lib/smartLinks';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -393,6 +393,7 @@ if (!gotLock) {
     // a cold start, and waiting for it made the app look like it had not opened.
     // Renderer requests retry while it warms up.
     createWindow();
+    void markUpdateStartup();
     buildTray();
     void ensureBackend();
 
