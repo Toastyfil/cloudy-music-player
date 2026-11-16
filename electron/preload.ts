@@ -93,6 +93,19 @@ const api = {
     dbStats: () => ipcRenderer.invoke('db:stats'),
     thumbar: (playing: boolean) => ipcRenderer.invoke('media:thumbar', playing),
   },
+  mini: {
+    publish: (state: unknown) => ipcRenderer.invoke('mini:publish', state),
+    ready: () => ipcRenderer.invoke('mini:ready'),
+    onState: (cb: (state: unknown) => void) => {
+      const handler = (_e: unknown, state: unknown) => cb(state);
+      ipcRenderer.on('mini:state', handler);
+      return () => {
+        ipcRenderer.removeListener('mini:state', handler);
+      };
+    },
+    command: (action: string) => ipcRenderer.invoke('mini:command', action),
+    restore: () => ipcRenderer.invoke('mini:restore'),
+  },
   events: {
     onMediaAction: (cb: (action: string) => void) => {
       const handler = (_e: unknown, action: string) => cb(action);

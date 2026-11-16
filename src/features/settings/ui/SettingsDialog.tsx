@@ -606,6 +606,16 @@ export function SettingsDialog() {
                   <Row title="Wavy seek bar" description="The progress line ripples with the bass; off leaves a plain rule.">
                     <Toggle value={settings.wavySeekBar} onChange={settings.setWavySeekBar} label="Wavy seek bar" />
                   </Row>
+                  <Row
+                    title="Mini player when minimized"
+                    description="A small floating bar with the cover, heart and transport sits above other windows while Cloudy is minimized."
+                  >
+                    <Toggle
+                      value={settings.miniPlayerOnMinimize}
+                      onChange={settings.setMiniPlayerOnMinimize}
+                      label="Mini player when minimized"
+                    />
+                  </Row>
 
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">You</h3>
                   <Row title="Profile" description="A local name and initial for your player. Nothing leaves this computer.">

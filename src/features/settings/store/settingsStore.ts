@@ -230,6 +230,8 @@ interface SettingsState {
   searchPosition: 'title' | 'page';
   /** Player bar docked at the bottom, or right under the title bar. */
   nowPlayingPosition: 'bottom' | 'top';
+  /** Show the small floating player while the window is minimized. */
+  miniPlayerOnMinimize: boolean;
   /** Stroke glyphs, or softly filled ones. */
   iconStyle: 'line' | 'solid';
   /** Icon buttons: pill-round or softly rounded. */
@@ -308,6 +310,7 @@ interface SettingsState {
   setPlayButtonBackground: (on: boolean) => void;
   setSearchPosition: (position: 'title' | 'page') => void;
   setNowPlayingPosition: (position: 'bottom' | 'top') => void;
+  setMiniPlayerOnMinimize: (on: boolean) => void;
   setIconStyle: (style: 'line' | 'solid') => void;
   setIconRoundness: (roundness: 'round' | 'soft') => void;
   setShowDurationColumn: (on: boolean) => void;
@@ -390,6 +393,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   playButtonBackground: true,
   searchPosition: 'title',
   nowPlayingPosition: 'bottom',
+  miniPlayerOnMinimize: true,
   iconStyle: 'line',
   iconRoundness: 'round',
   showDurationColumn: true,
@@ -472,6 +476,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         next.searchPosition = stored.searchPosition;
       if (stored.nowPlayingPosition === 'bottom' || stored.nowPlayingPosition === 'top')
         next.nowPlayingPosition = stored.nowPlayingPosition;
+      if (typeof stored.miniPlayerOnMinimize === 'boolean')
+        next.miniPlayerOnMinimize = stored.miniPlayerOnMinimize;
       if (stored.iconStyle === 'line' || stored.iconStyle === 'solid') next.iconStyle = stored.iconStyle;
       if (stored.iconRoundness === 'round' || stored.iconRoundness === 'soft')
         next.iconRoundness = stored.iconRoundness;
@@ -813,6 +819,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       playButtonBackground: true,
       searchPosition: 'title' as const,
       nowPlayingPosition: 'bottom' as const,
+      miniPlayerOnMinimize: true,
       iconStyle: 'line' as const,
       iconRoundness: 'round' as const,
       showDurationColumn: true,
@@ -862,6 +869,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setNowPlayingPosition(position) {
     set({ nowPlayingPosition: position });
     persistKey('nowPlayingPosition', position);
+  },
+
+  setMiniPlayerOnMinimize(on) {
+    set({ miniPlayerOnMinimize: on });
+    persistKey('miniPlayerOnMinimize', on);
   },
 
   setIconStyle(style) {

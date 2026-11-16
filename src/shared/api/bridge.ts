@@ -12,6 +12,17 @@ import type {
   Track,
 } from './contracts';
 
+/** What the minimized mini player shows and can ask the main window to do. */
+export type MiniState = {
+  title: string;
+  artist: string;
+  thumbnail: string | null;
+  playing: boolean;
+  favorite: boolean;
+};
+
+export type MiniAction = 'playpause' | 'next' | 'previous' | 'favorite';
+
 /** The exact surface exposed by electron/preload.ts. */
 export interface Bridge {
   window: {
@@ -83,6 +94,14 @@ export interface Bridge {
     dbStats(): Promise<{ tracks: number; playlists: number }>;
     openDataFolder(): Promise<unknown>;
     thumbar(playing: boolean): Promise<unknown>;
+  };
+  /** The always-on-top player shown while Cloudy is minimized. */
+  mini: {
+    publish(state: MiniState): Promise<unknown>;
+    ready(): Promise<MiniState | null>;
+    onState(cb: (state: MiniState) => void): () => void;
+    command(action: MiniAction): Promise<unknown>;
+    restore(): Promise<unknown>;
   };
   events: {
     onMediaAction(cb: (action: string) => void): () => void;
@@ -380,6 +399,13 @@ const browserBridge: Bridge = {
     dbStats: async () => ({ tracks: read<unknown[]>('library', []).length, playlists: read<unknown[]>('playlists', []).length }),
     openDataFolder: async () => false,
     thumbar: async () => false,
+  },
+  mini: {
+    publish: async () => false,
+    ready: async () => null,
+    onState: () => () => undefined,
+    command: async () => false,
+    restore: async () => false,
   },
   events: {
     onMediaAction: () => () => undefined,

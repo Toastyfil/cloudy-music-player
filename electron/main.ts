@@ -1,4 +1,17 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, globalShortcut, protocol, net, dialog } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  Tray,
+  Menu,
+  nativeImage,
+  globalShortcut,
+  protocol,
+  net,
+  dialog,
+  screen,
+} from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,6 +31,8 @@ app.setPath('userData', path.join(app.getPath('appData'), 'CloudyPlayer'));
 const API_ORIGIN = process.env.CLOUDY_API_ORIGIN ?? 'http://127.0.0.1:3456';
 
 let mainWindow: BrowserWindow | null = null;
+let miniWindow: BrowserWindow | null = null;
+let miniState: unknown = null;
 let windowTransparent = false;
 let tray: Tray | null = null;
 let quitting = false;
@@ -124,6 +139,11 @@ function createWindow(bounds?: { x: number; y: number; width: number; height: nu
 
   window.on('maximize', () => window.webContents.send('window:state', { maximized: true }));
   window.on('unmaximize', () => window.webContents.send('window:state', { maximized: false }));
+  // Minimizing hands the transport to the small floating player; coming back
+  // (by restore, tray click or a second launch) takes it away again.
+  window.on('minimize', () => showMiniPlayer());
+  window.on('restore', () => hideMiniPlayer());
+  window.on('show', () => hideMiniPlayer());
   window.on('close', (event) => {
     if (quitting) return;
     // "Minimize to tray on close" off means the close button really quits, the
@@ -151,6 +171,70 @@ function createWindow(bounds?: { x: number; y: number; width: number; height: nu
 
 function sendMediaAction(action: string) {
   mainWindow?.webContents.send('media:action', action);
+}
+
+const MINI_WIDTH = 372;
+const MINI_HEIGHT = 84;
+
+/** The small always-on-top player that stands in for the window while it is minimized. */
+function createMiniWindow() {
+  if (miniWindow && !miniWindow.isDestroyed()) return miniWindow;
+  const { workArea } = screen.getPrimaryDisplay();
+  const win = new BrowserWindow({
+    width: MINI_WIDTH,
+    height: MINI_HEIGHT,
+    x: workArea.x + workArea.width - MINI_WIDTH - 24,
+    y: workArea.y + workArea.height - MINI_HEIGHT - 24,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: false,
+    show: false,
+    title: 'Cloudy mini player',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      webSecurity: true,
+    },
+  });
+  win.setAlwaysOnTop(true, 'screen-saver');
+  if (isDev) void win.loadURL(`${process.env.VITE_DEV_SERVER_URL!}#/mini`);
+  else void win.loadFile(path.join(__dirname, '../dist/index.html'), { hash: '/mini' });
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.on('closed', () => {
+    miniWindow = null;
+  });
+  miniWindow = win;
+  return win;
+}
+
+function miniPlayerEnabled() {
+  try {
+    return settings.get<boolean>('miniPlayerOnMinimize', true) !== false;
+  } catch {
+    return true;
+  }
+}
+
+function showMiniPlayer() {
+  if (!miniPlayerEnabled() || quitting) return;
+  const win = createMiniWindow();
+  const { workArea } = screen.getPrimaryDisplay();
+  win.setPosition(workArea.x + workArea.width - MINI_WIDTH - 24, workArea.y + workArea.height - MINI_HEIGHT - 24);
+  win.showInactive();
+  win.setAlwaysOnTop(true, 'screen-saver');
+  if (miniState) win.webContents.send('mini:state', miniState);
+}
+
+function hideMiniPlayer() {
+  if (miniWindow && !miniWindow.isDestroyed()) miniWindow.hide();
 }
 
 /** Rebuild the window in place, keeping its bounds, so `transparent` can change. */
@@ -232,6 +316,23 @@ function buildTray() {
 }
 
 function registerIpc() {
+  ipcMain.handle('mini:publish', (_event, state) => {
+    miniState = state;
+    if (miniWindow && !miniWindow.isDestroyed()) miniWindow.webContents.send('mini:state', state);
+    return true;
+  });
+  ipcMain.handle('mini:ready', () => miniState);
+  ipcMain.handle('mini:command', (_event, action: string) => {
+    sendMediaAction(action);
+    return true;
+  });
+  ipcMain.handle('mini:restore', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+    hideMiniPlayer();
+    return true;
+  });
+
   ipcMain.handle('window:minimize', () => mainWindow?.minimize());
   ipcMain.handle('window:toggleMaximize', () => {
     if (!mainWindow) return false;
@@ -456,6 +557,7 @@ if (!gotLock) {
 
   app.on('before-quit', () => {
     quitting = true;
+    miniWindow?.destroy();
     presence.destroy();
     globalShortcut.unregisterAll();
     closeDatabase();

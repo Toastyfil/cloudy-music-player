@@ -35,6 +35,8 @@ export function App() {
   const toggleLyrics = useUiStore((s) => s.toggleLyrics);
   const toggleFullscreen = useUiStore((s) => s.toggleFullscreenLyrics);
   const track = usePlayerStore(selectCurrentTrack);
+  const playing = usePlayerStore((s) => s.playing);
+  const isFavorite = useFavoritesStore((s) => Boolean(track && s.ids.includes(track.id)));
   const hydrate = usePlayerStore((s) => s.hydrate);
   const loadLyrics = useLyricsStore((s) => s.load);
   const loadSettings = useSettingsStore((s) => s.load);
@@ -176,6 +178,20 @@ export function App() {
     return off;
   }, []);
 
+  // Keep the minimized mini player in step with the real transport. Publishing
+  // on every change is cheap: one IPC message per track, play state or heart.
+  useEffect(() => {
+    void bridge()
+      .mini.publish({
+        title: track?.title ?? '',
+        artist: track?.artist ?? '',
+        thumbnail: track?.thumbnail ?? null,
+        playing,
+        favorite: isFavorite,
+      })
+      .catch(() => undefined);
+  }, [track?.title, track?.artist, track?.thumbnail, playing, isFavorite]);
+
   // Deep links and tray/OS actions.
   useEffect(() => {
     const offLink = bridge().events.onDeeplink((route) => navigate(route));
@@ -185,6 +201,10 @@ export function App() {
       if (action === 'next') void player.next();
       if (action === 'previous') void player.previous();
       if (action === 'stop') player.seek(0);
+      if (action === 'favorite') {
+        const current = player.queue[player.index] ?? null;
+        if (current) void useFavoritesStore.getState().toggle(current);
+      }
     });
     return () => {
       offLink();
