@@ -74,6 +74,16 @@ jobs:
           fi
           npx electron-builder --win --publish never
 
+      - name: Verify bundled backend
+        shell: pwsh
+        run: |
+          $server = "release/win-unpacked/resources/app.asar.unpacked/server"
+          if (-not (Test-Path "$server/index.js")) { throw "The packaged app has no backend entrypoint." }
+          if (-not (Test-Path "$server/node_modules/express/package.json")) {
+            throw "The packaged backend is missing its node_modules (express)."
+          }
+          Write-Host "backend dependencies present"
+
       - name: Verify signature
         shell: pwsh
         env:
