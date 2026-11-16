@@ -475,7 +475,10 @@ async function repointShortcuts(oldExe: string, newExe: string) {
     'powershell.exe',
     ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, oldExe, newExe],
     { windowsHide: true },
-  ).catch(() => undefined);
+  ).then(
+    (result) => logInstall(`shortcuts: ${String(result.stdout).trim().slice(0, 200) || 'no matches'}`),
+    (error: Error) => logInstall(`shortcut repoint failed: ${error.message.slice(0, 200)}`),
+  );
   await fs.rm(script, { force: true }).catch(() => undefined);
 }
 
@@ -636,9 +639,15 @@ async function pruneOldVersions() {
   // original install must never remove the newer copy it has not adopted yet.
   if (!path.basename(current).startsWith('app-')) return;
   const root = windowsInstallRoot();
+  // Compare resolved paths case-insensitively: deleting the copy that is
+  // actually running leaves a half-erased install behind.
+  const running = (await fs.realpath(current).catch(() => current)).toLowerCase();
   for (const entry of await fs.readdir(root).catch(() => [] as string[])) {
-    if (!entry.startsWith('app-') || path.join(root, entry) === current) continue;
-    await fs.rm(path.join(root, entry), { recursive: true, force: true }).catch(() => undefined);
+    if (!entry.startsWith('app-')) continue;
+    const candidate = path.join(root, entry);
+    const resolved = (await fs.realpath(candidate).catch(() => null))?.toLowerCase();
+    if (!resolved || resolved === running || resolved.startsWith(`${running}${path.sep}`)) continue;
+    await fs.rm(candidate, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
