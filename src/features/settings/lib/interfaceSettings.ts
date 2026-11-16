@@ -8,6 +8,8 @@ export type InterfaceSettings = {
   noHandCursor: boolean;
   uiScale: number;
   cornerRadius: number;
+  rowSize: number;
+  trackNumbers: boolean;
 };
 
 export function applyInterfaceSettings(settings: InterfaceSettings) {
@@ -15,7 +17,9 @@ export function applyInterfaceSettings(settings: InterfaceSettings) {
   const root = document.documentElement;
   root.dataset.reduceMotion = settings.reduceMotion ? 'on' : 'off';
   root.dataset.noHand = settings.noHandCursor ? 'on' : 'off';
+  root.dataset.trackNumbers = settings.trackNumbers ? 'on' : 'off';
   root.style.setProperty('--ui-scale', String(settings.uiScale));
   root.style.setProperty('--radius-card', `${settings.cornerRadius}px`);
   root.style.setProperty('--radius-xl2', `${settings.cornerRadius + 6}px`);
+  root.style.setProperty('--row-h', `${settings.rowSize}px`);
 }

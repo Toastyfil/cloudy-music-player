@@ -208,6 +208,24 @@ interface SettingsState {
   interfaceFont: 'sans' | 'serif' | 'mono';
   /** Rounder, classic track rows. */
   classicCards: boolean;
+  /** Track row height in px: 48 dense, 56 default, 68 roomy. */
+  rowSize: number;
+  /** Use the current cover as the app background, blurred like Riff's. */
+  coverBackground: boolean;
+  /** Brightness of whichever background is showing, 30 – 130. */
+  backgroundBrightness: number;
+  /** Slow Ken-Burns drift on the background picture. */
+  animateBackground: boolean;
+  /** cover = fill the window, contain = letterbox the whole picture. */
+  backgroundFit: 'cover' | 'contain';
+  /** Always show the position number in track lists. */
+  showTrackNumbers: boolean;
+  /** Catalog badge (SOUNDCLOUD, DEEZER, …) next to the artist. */
+  showSourceBadge: boolean;
+  /** "No lyrics / no sync" notices inside the lyrics panel. */
+  showLyricsWarnings: boolean;
+  /** Filled circle behind the play/pause glyph. */
+  playButtonBackground: boolean;
   /** Fade the player-bar timestamps out until the pointer is over them. */
   autohideTimestamps: boolean;
   /** Hide the title bar until the pointer reaches the top edge. */
@@ -263,6 +281,16 @@ interface SettingsState {
   setTitleBarAutoHide: (on: boolean) => void;
   setAutohideTimestamps: (on: boolean) => void;
   setShowExplicitTag: (on: boolean) => void;
+  setRowSize: (value: number) => void;
+  setCoverBackground: (on: boolean) => void;
+  setBackgroundBrightness: (value: number) => void;
+  setAnimateBackground: (on: boolean) => void;
+  setBackgroundFit: (fit: 'cover' | 'contain') => void;
+  setShowTrackNumbers: (on: boolean) => void;
+  setShowSourceBadge: (on: boolean) => void;
+  setShowLyricsWarnings: (on: boolean) => void;
+  setPlayButtonBackground: (on: boolean) => void;
+  resetInterface: () => void;
   setOutputDeviceId: (id: string) => void;
   setInterfaceFont: (font: 'sans' | 'serif' | 'mono') => void;
   setClassicCards: (on: boolean) => void;
@@ -327,6 +355,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   lyricsKaraoke: true,
   lyricsAutoScroll: true,
   onlineLyrics: true,
+  rowSize: 56,
+  coverBackground: false,
+  backgroundBrightness: 100,
+  animateBackground: false,
+  backgroundFit: 'cover',
+  showTrackNumbers: false,
+  showSourceBadge: true,
+  showLyricsWarnings: true,
+  playButtonBackground: true,
   outputDeviceId: '',
   showExplicitTag: true,
   interfaceFont: 'sans',
@@ -387,6 +424,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.lyricsKaraoke === 'boolean') next.lyricsKaraoke = stored.lyricsKaraoke;
       if (typeof stored.lyricsAutoScroll === 'boolean') next.lyricsAutoScroll = stored.lyricsAutoScroll;
       if (typeof stored.onlineLyrics === 'boolean') next.onlineLyrics = stored.onlineLyrics;
+      if (typeof stored.rowSize === 'number') next.rowSize = Math.max(44, Math.min(84, Math.round(stored.rowSize)));
+      if (typeof stored.coverBackground === 'boolean') next.coverBackground = stored.coverBackground;
+      if (typeof stored.backgroundBrightness === 'number')
+        next.backgroundBrightness = Math.max(30, Math.min(130, Math.round(stored.backgroundBrightness)));
+      if (typeof stored.animateBackground === 'boolean') next.animateBackground = stored.animateBackground;
+      if (stored.backgroundFit === 'cover' || stored.backgroundFit === 'contain')
+        next.backgroundFit = stored.backgroundFit;
+      if (typeof stored.showTrackNumbers === 'boolean') next.showTrackNumbers = stored.showTrackNumbers;
+      if (typeof stored.showSourceBadge === 'boolean') next.showSourceBadge = stored.showSourceBadge;
+      if (typeof stored.showLyricsWarnings === 'boolean') next.showLyricsWarnings = stored.showLyricsWarnings;
+      if (typeof stored.playButtonBackground === 'boolean')
+        next.playButtonBackground = stored.playButtonBackground;
       if (typeof stored.outputDeviceId === 'string') next.outputDeviceId = stored.outputDeviceId;
       if (typeof stored.showExplicitTag === 'boolean') next.showExplicitTag = stored.showExplicitTag;
       if (stored.interfaceFont === 'sans' || stored.interfaceFont === 'serif' || stored.interfaceFont === 'mono')
@@ -658,6 +707,85 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ outputDeviceId: id });
     persistKey('outputDeviceId', id);
     void audioEngine.setOutputDevice(id);
+  },
+
+  setRowSize(value) {
+    const rowSize = Math.max(44, Math.min(84, Math.round(value)));
+    set({ rowSize });
+    persistKey('rowSize', rowSize);
+  },
+
+  setCoverBackground(on) {
+    set({ coverBackground: on });
+    persistKey('coverBackground', on);
+  },
+
+  setBackgroundBrightness(value) {
+    const backgroundBrightness = Math.max(30, Math.min(130, Math.round(value)));
+    set({ backgroundBrightness });
+    persistKey('backgroundBrightness', backgroundBrightness);
+  },
+
+  setAnimateBackground(on) {
+    set({ animateBackground: on });
+    persistKey('animateBackground', on);
+  },
+
+  setBackgroundFit(fit) {
+    set({ backgroundFit: fit });
+    persistKey('backgroundFit', fit);
+  },
+
+  setShowTrackNumbers(on) {
+    set({ showTrackNumbers: on });
+    persistKey('showTrackNumbers', on);
+  },
+
+  setShowSourceBadge(on) {
+    set({ showSourceBadge: on });
+    persistKey('showSourceBadge', on);
+  },
+
+  setShowLyricsWarnings(on) {
+    set({ showLyricsWarnings: on });
+    persistKey('showLyricsWarnings', on);
+  },
+
+  setPlayButtonBackground(on) {
+    set({ playButtonBackground: on });
+    persistKey('playButtonBackground', on);
+  },
+
+  /** Put the interface back to stock values; the library is untouched. */
+  resetInterface() {
+    const defaults = {
+      rowSize: 56,
+      coverBackground: false,
+      backgroundBrightness: 100,
+      animateBackground: false,
+      backgroundFit: 'cover' as const,
+      showTrackNumbers: false,
+      showSourceBadge: true,
+      showLyricsWarnings: true,
+      playButtonBackground: true,
+      reduceMotion: false,
+      noHandCursor: false,
+      uiScale: 1,
+      cornerRadius: 12,
+      autohideTimestamps: false,
+      titleBarAutoHide: false,
+      classicCards: false,
+      customCss: '',
+      customBackground: '',
+      backgroundBlur: 12,
+      backgroundOpacity: 100,
+      meshGradient: true,
+      customAccentEnabled: false,
+      showExplicitTag: true,
+      interfaceFont: 'sans' as const,
+    };
+    set(defaults);
+    for (const [key, value] of Object.entries(defaults)) persistKey(key, value);
   },
 
   setShowExplicitTag(on) {

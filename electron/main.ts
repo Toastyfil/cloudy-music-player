@@ -329,6 +329,8 @@ function registerIpc() {
   ipcMain.handle('presence:enabled', (_e, value) => presence.setEnabled(Boolean(value)));
 
   ipcMain.handle('shell:openExternal', (_e, url) => shell.openExternal(url));
+  ipcMain.handle('app:open-data-folder', () => shell.openPath(app.getPath('userData')));
+
   ipcMain.handle('app:info', () => ({
     version: app.getVersion(),
     platform: process.platform,

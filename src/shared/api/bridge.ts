@@ -81,6 +81,7 @@ export interface Bridge {
   app: {
     info(): Promise<{ version: string; platform: string; apiOrigin: string; userData: string }>;
     dbStats(): Promise<{ tracks: number; playlists: number }>;
+    openDataFolder(): Promise<unknown>;
     thumbar(playing: boolean): Promise<unknown>;
   };
   events: {
@@ -377,6 +378,7 @@ const browserBridge: Bridge = {
   app: {
     info: async () => ({ version: '1.1.1', platform: 'browser', apiOrigin: 'http://127.0.0.1:3456', userData: 'browser' }),
     dbStats: async () => ({ tracks: read<unknown[]>('library', []).length, playlists: read<unknown[]>('playlists', []).length }),
+    openDataFolder: async () => false,
     thumbar: async () => false,
   },
   events: {

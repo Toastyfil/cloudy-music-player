@@ -61,6 +61,7 @@ export function TrackRow({
   const favorite = useFavoritesStore((s) => s.ids.includes(track.id));
   const showExplicit = useSettingsStore((s) => s.showExplicitTag);
   const classicCards = useSettingsStore((s) => s.classicCards);
+  const showSourceBadge = useSettingsStore((s) => s.showSourceBadge);
 
   return (
     <div
@@ -75,8 +76,9 @@ export function TrackRow({
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      style={{ height: 'var(--row-h, 56px)' }}
       className={cn(
-        'group flex h-14 w-full items-center gap-3 px-3 text-left transition-colors duration-150 focus-ring',
+        'cloudy-track-row group flex w-full items-center gap-3 px-3 text-left transition-colors duration-150 focus-ring',
         classicCards ? 'rounded-[20px] hover:scale-[1.004] hover:bg-surface/80 active:scale-[0.999]' : 'rounded-lg',
         active ? 'bg-accent-soft' : 'hover:bg-surface/70',
         className,
@@ -129,7 +131,7 @@ export function TrackRow({
         <span className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted">
           <span className="truncate">{subtitleOverride ?? track.artist}</span>
           {showAlbum && track.album?.name ? <span className="truncate text-faint">· {track.album.name}</span> : null}
-          {isExternalTrack(track) ? (
+          {showSourceBadge && isExternalTrack(track) ? (
             <span
               className="shrink-0 rounded bg-surface px-1.5 py-[1px] text-[9.5px] font-medium uppercase tracking-[0.08em] text-faint"
               title={`Catalog result from ${sourceLabel(track.source)}`}

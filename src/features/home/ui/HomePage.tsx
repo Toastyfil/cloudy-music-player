@@ -234,8 +234,9 @@ export function HomePage() {
                 {recent.slice(0, 6).map((track) => (
                   <div
                     key={track.id}
+                    style={{ height: 'var(--row-h, 56px)' }}
                     className={cn(
-                      'group flex h-14 items-center gap-3 px-3 transition-all duration-150 hover:bg-surface/70',
+                      'group flex items-center gap-3 px-3 transition-all duration-150 hover:bg-surface/70',
                       classicCards ? 'rounded-[20px] hover:scale-[1.004] active:scale-[0.999]' : 'rounded-lg',
                     )}
                   >

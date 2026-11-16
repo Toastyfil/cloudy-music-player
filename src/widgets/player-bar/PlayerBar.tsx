@@ -20,11 +20,13 @@ import { resolveApi } from '@/shared/api/client';
 import { SeekBar } from '@/features/player/ui/SeekBar';
 import { VolumeControl } from '@/features/player/ui/VolumeControl';
 import { useUiStore } from '@/features/navigation/store/uiStore';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { useT } from '@/shared/lib/i18n';
 
 export const PlayerBar = memo(function PlayerBar() {
   const t = useT();
+  const playButtonBackground = useSettingsStore((s) => s.playButtonBackground);
   const track = usePlayerStore(selectCurrentTrack);
   const playing = usePlayerStore((s) => s.playing);
   const buffering = usePlayerStore((s) => s.buffering);
@@ -143,7 +145,10 @@ export const PlayerBar = memo(function PlayerBar() {
             disabled={!track}
             aria-label={playing ? 'Pause' : 'Play'}
             title={playing ? 'Pause' : 'Play'}
-            className="relative mx-1 flex h-9 w-9 items-center justify-center rounded-full bg-text text-black transition-transform duration-150 hover:scale-[1.04] active:scale-95 disabled:opacity-40"
+            className={cn(
+              'relative mx-1 flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-150 hover:scale-[1.04] active:scale-95 disabled:opacity-40',
+              playButtonBackground ? 'bg-text text-black' : 'text-text hover:text-accent',
+            )}
           >
             {/* The icon never disappears; buffering shows as a ring around it. */}
             {playing ? <CloudPause size={18} /> : <CloudPlay size={18} className="ml-[2px]" />}

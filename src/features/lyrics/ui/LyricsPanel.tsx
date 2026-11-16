@@ -196,6 +196,7 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
   // interaction, so the lyrics never yank out from under a reader mid-line.
   const [manual, setManual] = useState(false);
   const autoScroll = useSettingsStore((s) => s.lyricsAutoScroll);
+  const showWarnings = useSettingsStore((s) => s.showLyricsWarnings);
   const [resumeNonce, setResumeNonce] = useState(0);
   const autoShift = useRef(0);
   const drag = useRef<{ y: number; base: number } | null>(null);
@@ -305,9 +306,11 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
         <CloudyMark size={40} animated />
         <p className={cn('text-[15px] font-medium', onDark && 'text-white')}>Instrumental</p>
-        <p className={cn('max-w-[240px] text-[13px] leading-relaxed', onDark ? 'text-white/55' : 'text-muted')}>
-          No words in this one — just let it play.
-        </p>
+        {showWarnings ? (
+          <p className={cn('max-w-[240px] text-[13px] leading-relaxed', onDark ? 'text-white/55' : 'text-muted')}>
+            No words in this one — just let it play.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -317,11 +320,13 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
         <CloudyMark size={40} />
         <p className={cn('text-[15px] font-medium', onDark && 'text-white')}>No lyrics yet</p>
-        <p className={cn('max-w-[250px] text-[13px] leading-relaxed', onDark ? 'text-white/55' : 'text-muted')}>
-          {status === 'error'
-            ? 'Lyrics could not be reached. They will be retried next time this track plays.'
-            : 'Nothing matched for this track. Synced lyrics come from LRCLIB.'}
-        </p>
+        {showWarnings ? (
+          <p className={cn('max-w-[250px] text-[13px] leading-relaxed', onDark ? 'text-white/55' : 'text-muted')}>
+            {status === 'error'
+              ? 'Lyrics could not be reached. They will be retried next time this track plays.'
+              : 'Nothing matched for this track. Synced lyrics come from LRCLIB.'}
+          </p>
+        ) : null}
       </div>
     );
   }

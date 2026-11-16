@@ -89,6 +89,7 @@ const api = {
   },
   app: {
     info: () => ipcRenderer.invoke('app:info'),
+    openDataFolder: () => ipcRenderer.invoke('app:open-data-folder'),
     dbStats: () => ipcRenderer.invoke('db:stats'),
     thumbar: (playing: boolean) => ipcRenderer.invoke('media:thumbar', playing),
   },

@@ -26,6 +26,7 @@ import { UpdateDialog } from '@/features/updates/ui/UpdateDialog';
 import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { useAudioBindings } from '@/features/player/hooks/useAudioBindings';
 import { bridge } from '@/shared/api/bridge';
+import { cn } from '@/shared/lib/cn';
 import { audioEngine } from '@/features/player/engine/audioEngine';
 
 export function App() {
@@ -47,10 +48,24 @@ export function App() {
   const backgroundBlur = useSettingsStore((s) => s.backgroundBlur);
   const backgroundOpacity = useSettingsStore((s) => s.backgroundOpacity);
   const meshGradient = useSettingsStore((s) => s.meshGradient);
+  const rowSize = useSettingsStore((s) => s.rowSize);
+  const coverBackground = useSettingsStore((s) => s.coverBackground);
+  const backgroundBrightness = useSettingsStore((s) => s.backgroundBrightness);
+  const animateBackground = useSettingsStore((s) => s.animateBackground);
+  const backgroundFit = useSettingsStore((s) => s.backgroundFit);
+  const backgroundImage = coverBackground && track?.thumbnail ? track.thumbnail : customBackground;
+  const showTrackNumbers = useSettingsStore((s) => s.showTrackNumbers);
 
   useEffect(() => {
-    applyInterfaceSettings({ reduceMotion, noHandCursor, uiScale, cornerRadius });
-  }, [reduceMotion, noHandCursor, uiScale, cornerRadius]);
+    applyInterfaceSettings({
+      reduceMotion,
+      noHandCursor,
+      uiScale,
+      cornerRadius,
+      rowSize,
+      trackNumbers: showTrackNumbers,
+    });
+  }, [reduceMotion, noHandCursor, uiScale, cornerRadius, rowSize, showTrackNumbers]);
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
   // and the softer variants the UI derives from it.
@@ -178,12 +193,21 @@ export function App() {
           under every panel so translucent surfaces pick up its colour. */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {meshGradient ? <div className="cloudy-mesh absolute -inset-32" /> : null}
-        {customBackground ? (
+        {backgroundImage ? (
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className={cn(
+              'absolute inset-0 bg-center',
+              backgroundFit === 'contain' ? 'bg-contain bg-no-repeat' : 'bg-cover',
+              animateBackground && 'cloudy-bg-drift',
+            )}
             style={{
-              backgroundImage: `url(${customBackground})`,
-              filter: backgroundBlur ? `blur(${backgroundBlur}px)` : undefined,
+              backgroundImage: `url(${backgroundImage})`,
+              filter: [
+                backgroundBlur ? `blur(${backgroundBlur}px)` : '',
+                backgroundBrightness !== 100 ? `brightness(${backgroundBrightness}%)` : '',
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined,
               opacity: backgroundOpacity / 100,
               transform: backgroundBlur ? 'scale(1.08)' : undefined,
             }}

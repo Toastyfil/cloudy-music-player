@@ -14,6 +14,11 @@ import {
   Trash2,
   Upload,
   UserRound,
+  Image as ImageIcon,
+  ListMusic,
+  Wrench,
+  Copy,
+  FolderOpen,
   Volume2,
   Wifi,
 } from 'lucide-react';
@@ -83,7 +88,18 @@ function EffectSlider({
   );
 }
 
-type Tab = 'you' | 'interface' | 'appearance' | 'playback' | 'audio' | 'shortcuts' | 'cache' | 'about';
+type Tab =
+  | 'you'
+  | 'interface'
+  | 'appearance'
+  | 'banners'
+  | 'tracks'
+  | 'playback'
+  | 'audio'
+  | 'shortcuts'
+  | 'advanced'
+  | 'cache'
+  | 'about';
 
 function relativeTime(timestamp: number) {
   const minutes = Math.round((Date.now() - timestamp) / 60000);
@@ -103,9 +119,12 @@ const TABS: {
   { id: 'you', label: 'You', icon: UserRound },
   { id: 'interface', label: 'Interface', icon: MonitorCog },
   { id: 'appearance', key: 'appearance', icon: Palette },
+  { id: 'banners', label: 'Banners', icon: ImageIcon },
+  { id: 'tracks', label: 'Tracks', icon: ListMusic },
   { id: 'playback', key: 'playback', icon: Volume2 },
   { id: 'audio', label: 'Audio', icon: SlidersHorizontal },
   { id: 'shortcuts', key: 'shortcuts', icon: Keyboard },
+  { id: 'advanced', label: 'Advanced', icon: Wrench },
   { id: 'cache', label: 'Storage', icon: Wifi },
   { id: 'about', label: 'About', icon: Info },
 ];
@@ -541,6 +560,29 @@ export function SettingsDialog() {
                       </span>
                     </div>
                   </Row>
+                  <Row title="Track card size" description="How tall each track row is.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {[48, 56, 68].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => settings.setRowSize(size)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] tabular-nums transition-colors',
+                            settings.rowSize === size ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Play button background" description="The filled circle behind the main play/pause glyph.">
+                    <Toggle
+                      value={settings.playButtonBackground}
+                      onChange={settings.setPlayButtonBackground}
+                      label="Play button background"
+                    />
+                  </Row>
                   <Row title="No-hand cursor" description="Use the normal arrow over buttons and links instead of a pointing hand.">
                     <Toggle value={settings.noHandCursor} onChange={settings.setNoHandCursor} label="No-hand cursor" />
                   </Row>
@@ -733,13 +775,6 @@ export function SettingsDialog() {
                   <Row title="Classic rounded rows" description="Rounder 20px track rows with a press animation, like Riff's card style.">
                     <Toggle value={settings.classicCards} onChange={settings.setClassicCards} label="Classic rounded rows" />
                   </Row>
-                  <Row title="Explicit tag" description="Show an E badge next to tracks marked explicit.">
-                    <Toggle
-                      value={settings.showExplicitTag}
-                      onChange={settings.setShowExplicitTag}
-                      label="Explicit tag"
-                    />
-                  </Row>
 
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">Accent</h3>
                   <Row
@@ -894,6 +929,137 @@ export function SettingsDialog() {
                         {Math.round(settings.windowOpacity * 100)}%
                       </span>
                     </div>
+                  </Row>
+                </section>
+              ) : null}
+
+              {tab === 'banners' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">Background</h3>
+                  <Row
+                    title="Cover background"
+                    description="Use the current track's artwork as the app background, like Riff's blurred cover."
+                  >
+                    <Toggle value={settings.coverBackground} onChange={settings.setCoverBackground} label="Cover background" />
+                  </Row>
+                  <Row title="Brightness" description="Lighten or deepen whichever background is showing.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={30}
+                        max={130}
+                        step={1}
+                        value={settings.backgroundBrightness}
+                        onChange={(event) => settings.setBackgroundBrightness(Number(event.target.value))}
+                        aria-label="Background brightness"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">
+                        {settings.backgroundBrightness}%
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Animate background" description="A slow drift across the picture so a still frame never looks frozen.">
+                    <Toggle value={settings.animateBackground} onChange={settings.setAnimateBackground} label="Animate background" />
+                  </Row>
+                  <Row title="Banner fit" description="Fill the window, or letterbox the whole picture.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {(['cover', 'contain'] as const).map((fit) => (
+                        <button
+                          key={fit}
+                          onClick={() => settings.setBackgroundFit(fit)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] capitalize transition-colors',
+                            settings.backgroundFit === fit ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {fit}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <p className="mt-3 text-[11.5px] leading-relaxed text-muted">
+                    Your own picture, its blur and its opacity live in Appearance → Background.
+                  </p>
+                </section>
+              ) : null}
+
+              {tab === 'tracks' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">Lists</h3>
+                  <Row title="Track numbers" description="Show the position number in front of every row, not just on hover.">
+                    <Toggle value={settings.showTrackNumbers} onChange={settings.setShowTrackNumbers} label="Track numbers" />
+                  </Row>
+                  <Row title="Source badge" description="Show the catalog (SoundCloud, Deezer, Apple, Audius) next to the artist.">
+                    <Toggle value={settings.showSourceBadge} onChange={settings.setShowSourceBadge} label="Source badge" />
+                  </Row>
+                  <Row title="Explicit tag" description="Show an E badge next to tracks marked explicit.">
+                    <Toggle value={settings.showExplicitTag} onChange={settings.setShowExplicitTag} label="Explicit tag" />
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Lyrics</h3>
+                  <Row
+                    title="No-lyrics warnings"
+                    description={'Show the "no lyrics / no sync found" explanation inside the lyrics panel.'}
+                  >
+                    <Toggle
+                      value={settings.showLyricsWarnings}
+                      onChange={settings.setShowLyricsWarnings}
+                      label="No-lyrics warnings"
+                    />
+                  </Row>
+                </section>
+              ) : null}
+
+              {tab === 'advanced' ? (
+                <section>
+                  <h3 className="mb-3 text-[15px] font-semibold">Diagnostics</h3>
+                  <Row title="Copy diagnostics" description="Version, settings and cache numbers, ready to paste into a bug report.">
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        const info = await bridge().app.info().catch(() => null);
+                        const [cacheStats, dbStats] = await Promise.all([
+                          bridge().cache.stats().catch(() => null),
+                          bridge().app.dbStats().catch(() => null),
+                        ]);
+                        const payload = {
+                          app: 'Cloudy',
+                          version: info?.version ?? version,
+                          platform: info?.platform ?? 'unknown',
+                          tracks: dbStats?.tracks ?? null,
+                          playlists: dbStats?.playlists ?? null,
+                          cacheFiles: cacheStats?.files ?? null,
+                          cacheBytes: cacheStats?.bytes ?? null,
+                          settings: { ...settings, load: undefined, currentTheme: undefined },
+                        };
+                        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+                      }}
+                    >
+                      <Copy size={13} /> Copy
+                    </Button>
+                  </Row>
+                  <Row title="Open data folder" description="Where Cloudy keeps its database, cached audio and update logs.">
+                    <Button variant="ghost" onClick={() => void bridge().app.openDataFolder()}>
+                      <FolderOpen size={13} /> Open
+                    </Button>
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">Reset</h3>
+                  <Row
+                    title="Reset interface settings"
+                    description="Puts appearance, interface and list options back to stock. Your library and playlists are untouched."
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (window.confirm('Reset appearance, interface and list settings to their defaults?')) {
+                          settings.resetInterface();
+                        }
+                      }}
+                    >
+                      Reset
+                    </Button>
                   </Row>
                 </section>
               ) : null}

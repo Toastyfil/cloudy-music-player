@@ -258,6 +258,40 @@ body {
 }
 .animate-heart-pop { animation: cloudy-heart-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
+/* Track numbers (Settings → Tracks): a CSS counter keeps one sequence per
+   page without every list having to pass an index down. */
+main {
+  counter-reset: cloudy-track;
+}
+
+html[data-track-numbers='on'] .cloudy-track-row {
+  counter-increment: cloudy-track;
+}
+
+html[data-track-numbers='on'] .cloudy-track-row::before {
+  content: counter(cloudy-track);
+  width: 1.35rem;
+  flex: none;
+  text-align: right;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+/* Slow drift on the background picture (Settings → Banners → Animate). */
+.cloudy-bg-drift {
+  animation: cloudy-bg-zoom 44s ease-in-out infinite alternate;
+}
+
+@keyframes cloudy-bg-zoom {
+  0% { transform: scale(1.03) translate3d(0, 0, 0); }
+  100% { transform: scale(1.14) translate3d(1.5%, -1.5%, 0); }
+}
+
+html[data-reduce-motion='on'] .cloudy-bg-drift {
+  animation: none !important;
+}
+
 /* Hide the title bar until the pointer comes near the top edge (Settings →
    Interface → Hide title bar). The bar keeps its space so nothing jumps. */
 header[data-autohide='on'] {
