@@ -336,6 +336,47 @@ export function SettingsDialog() {
                   <Row title="No-hand cursor" description="Use the normal arrow over buttons and links instead of a pointing hand.">
                     <Toggle value={settings.noHandCursor} onChange={settings.setNoHandCursor} label="No-hand cursor" />
                   </Row>
+                  <Row title="Auto-hide timestamps" description="Fade the player-bar times out until the pointer is over them.">
+                    <Toggle
+                      value={settings.autohideTimestamps}
+                      onChange={settings.setAutohideTimestamps}
+                      label="Auto-hide timestamps"
+                    />
+                  </Row>
+                  <Row title="Hide title bar" description="Fade the title bar out until the pointer reaches the top of the window.">
+                    <Toggle
+                      value={settings.titleBarAutoHide}
+                      onChange={settings.setTitleBarAutoHide}
+                      label="Hide title bar"
+                    />
+                  </Row>
+                  <div className="border-b border-line py-3.5 last:border-0">
+                    <div className="mb-2 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-[13.5px] font-medium">Custom CSS</p>
+                        <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">
+                          Your own rules, appended after Cloudy's styles. Cleared here and nowhere else.
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          onClick={() => settings.setCustomCss('')}
+                          className="rounded-full border border-line px-2.5 py-1 text-[12px] text-muted transition-colors hover:text-text"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={settings.customCss}
+                      onChange={(event) => settings.setCustomCss(event.target.value)}
+                      spellCheck={false}
+                      placeholder=".album-art { border-radius: 4px; }"
+                      aria-label="Custom CSS"
+                      rows={4}
+                      className="w-full resize-y rounded-lg bg-surface/70 p-2.5 font-mono text-[11.5px] leading-relaxed text-text outline-none placeholder:text-faint focus:ring-1 focus:ring-accent/40"
+                    />
+                  </div>
 
                   <h3 className="mb-3 mt-7 text-[15px] font-semibold">Window</h3>
                   <Row
@@ -731,6 +772,31 @@ export function SettingsDialog() {
                   </Row>
                   <Row title="System media controls" description="Windows SMTC / macOS Now Playing pick up track, art and transport.">
                     <span className="text-[12.5px] text-muted">{isElectron() ? 'Supported' : 'Only in the desktop app'}</span>
+                  </Row>
+                  <Row title="Karaoke word highlighting" description="Fill each word as it is sung. Off leaves the whole line highlighted.">
+                    <Toggle value={settings.lyricsKaraoke} onChange={settings.setLyricsKaraoke} label="Karaoke word highlighting" />
+                  </Row>
+                  <Row title="Auto-scroll lyrics" description="Follow the active line during playback. Off leaves scrolling to you.">
+                    <Toggle value={settings.lyricsAutoScroll} onChange={settings.setLyricsAutoScroll} label="Auto-scroll lyrics" />
+                  </Row>
+                  <Row title="Online lyrics lookup" description="Fetch synced lyrics from lrclib when a track has none saved.">
+                    <Toggle value={settings.onlineLyrics} onChange={settings.setOnlineLyrics} label="Online lyrics lookup" />
+                  </Row>
+                  <Row title="Crossfade" description="Fade the ending track into the next one. 0 keeps the hard cut.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {[0, 1000, 2000, 3000, 4000].map((ms) => (
+                        <button
+                          key={ms}
+                          onClick={() => settings.setFadeMs(ms)}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-[12px] tabular-nums transition-colors',
+                            settings.fadeMs === ms ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {ms === 0 ? 'Off' : `${ms / 1000}s`}
+                        </button>
+                      ))}
+                    </div>
                   </Row>
                   <Row title="Lyrics offset" description="Nudge lyrics earlier or later if a track's timings drift.">
                     <div className="flex items-center gap-2">

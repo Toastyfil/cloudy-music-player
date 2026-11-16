@@ -11,6 +11,7 @@ export function TitleBar() {
   const [platform, setPlatform] = useState('win32');
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
   const transparent = useSettingsStore((s) => s.windowTransparent);
+  const autoHide = useSettingsStore((s) => s.titleBarAutoHide);
 
   useEffect(() => {
     void bridge()
@@ -30,7 +31,10 @@ export function TitleBar() {
   const customLights = isMac && transparent && electron;
 
   return (
-    <header className="drag relative z-30 flex h-10 shrink-0 items-center justify-between px-3">
+    <header
+      data-autohide={autoHide ? 'on' : 'off'}
+      className="drag relative z-30 flex h-10 shrink-0 items-center justify-between px-3"
+    >
       <div className={`flex items-center gap-3 ${nativeLights ? 'pl-[78px]' : ''}`}>
         {customLights ? (
           <div className="no-drag flex items-center gap-2">

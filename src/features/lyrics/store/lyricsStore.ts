@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Track } from '@/shared/api/contracts';
 import { fetchLyrics } from '../api/lrclib';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { parseLrc, type LyricLine } from '../lib/lrc';
 
 type Status = 'idle' | 'loading' | 'synced' | 'plain' | 'instrumental' | 'empty' | 'error';
@@ -52,6 +53,8 @@ const pending = new Map<string, Promise<Snapshot>>();
 const EMPTY: Snapshot = { status: 'empty', lines: [], plain: null, offset: 0 };
 
 async function resolveLyrics(track: Track): Promise<Snapshot> {
+  // "Online lyrics lookup" off means no network call at all, not a cached miss.
+  if (!useSettingsStore.getState().onlineLyrics) return EMPTY;
   const result = await fetchLyrics(track);
   if (!result) return EMPTY;
   if (result.instrumental) return { status: 'instrumental', lines: [], plain: null, offset: 0 };

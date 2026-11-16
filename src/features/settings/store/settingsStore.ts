@@ -192,6 +192,18 @@ interface SettingsState {
   backgroundOpacity: number;
   /** Animated accent mesh behind the interface, like Riff's. */
   meshGradient: boolean;
+  /** Word-by-word karaoke sweep; off leaves a flat two-tone line. */
+  lyricsKaraoke: boolean;
+  /** Follow the active line automatically; off leaves scrolling to you. */
+  lyricsAutoScroll: boolean;
+  /** Fetch lyrics from lrclib at all. */
+  onlineLyrics: boolean;
+  /** Fade the player-bar timestamps out until the pointer is over them. */
+  autohideTimestamps: boolean;
+  /** Hide the title bar until the pointer reaches the top edge. */
+  titleBarAutoHide: boolean;
+  /** Your own CSS, appended after the app's styles. */
+  customCss: string;
   /** Riff's accent controls: take the accent over from the theme. */
   customAccentEnabled: boolean;
   accentHue: number;
@@ -234,6 +246,12 @@ interface SettingsState {
   setAccentHue: (value: number) => void;
   setAccentSaturation: (value: number) => void;
   setAccentLightness: (value: number) => void;
+  setLyricsKaraoke: (on: boolean) => void;
+  setLyricsAutoScroll: (on: boolean) => void;
+  setOnlineLyrics: (on: boolean) => void;
+  setTitleBarAutoHide: (on: boolean) => void;
+  setAutohideTimestamps: (on: boolean) => void;
+  setCustomCss: (css: string) => void;
   setLyricsSpeed: (speed: number) => void;
   setGradientTightness: (percent: number) => void;
   setVisualizerSensitivity: (value: number) => void;
@@ -290,6 +308,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   backgroundBlur: 12,
   backgroundOpacity: 100,
   meshGradient: true,
+  lyricsKaraoke: true,
+  lyricsAutoScroll: true,
+  onlineLyrics: true,
+  autohideTimestamps: false,
+  titleBarAutoHide: false,
+  customCss: '',
   customAccentEnabled: false,
   accentHue: 262,
   accentSaturation: 72,
@@ -339,6 +363,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.backgroundOpacity === 'number')
         next.backgroundOpacity = Math.max(0, Math.min(100, Math.round(stored.backgroundOpacity)));
       if (typeof stored.meshGradient === 'boolean') next.meshGradient = stored.meshGradient;
+      if (typeof stored.lyricsKaraoke === 'boolean') next.lyricsKaraoke = stored.lyricsKaraoke;
+      if (typeof stored.lyricsAutoScroll === 'boolean') next.lyricsAutoScroll = stored.lyricsAutoScroll;
+      if (typeof stored.onlineLyrics === 'boolean') next.onlineLyrics = stored.onlineLyrics;
+      if (typeof stored.autohideTimestamps === 'boolean') next.autohideTimestamps = stored.autohideTimestamps;
+      if (typeof stored.titleBarAutoHide === 'boolean') next.titleBarAutoHide = stored.titleBarAutoHide;
+      if (typeof stored.customCss === 'string') next.customCss = stored.customCss.slice(0, 20_000);
       if (typeof stored.customAccentEnabled === 'boolean') next.customAccentEnabled = stored.customAccentEnabled;
       if (typeof stored.accentHue === 'number')
         next.accentHue = Math.max(0, Math.min(360, Math.round(stored.accentHue)));
@@ -576,6 +606,37 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const accentSaturation = Math.max(20, Math.min(100, Math.round(value)));
     set({ accentSaturation });
     persistKey('accentSaturation', accentSaturation);
+  },
+
+  setLyricsKaraoke(on) {
+    set({ lyricsKaraoke: on });
+    persistKey('lyricsKaraoke', on);
+  },
+
+  setLyricsAutoScroll(on) {
+    set({ lyricsAutoScroll: on });
+    persistKey('lyricsAutoScroll', on);
+  },
+
+  setOnlineLyrics(on) {
+    set({ onlineLyrics: on });
+    persistKey('onlineLyrics', on);
+  },
+
+  setAutohideTimestamps(on) {
+    set({ autohideTimestamps: on });
+    persistKey('autohideTimestamps', on);
+  },
+
+  setTitleBarAutoHide(on) {
+    set({ titleBarAutoHide: on });
+    persistKey('titleBarAutoHide', on);
+  },
+
+  setCustomCss(css) {
+    const customCss = css.slice(0, 20_000);
+    set({ customCss });
+    persistKey('customCss', customCss);
   },
 
   setAccentLightness(value) {

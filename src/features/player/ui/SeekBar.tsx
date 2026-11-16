@@ -157,6 +157,7 @@ export function SeekBar({ compact = false, onDark = false }: { compact?: boolean
   const [position, setPosition] = useState(0);
   const [hoverValue, setHoverValue] = useState<number | null>(null);
   const playing = usePlayerStore((s) => s.playing);
+  const autoHideTimes = useSettingsStore((state) => state.autohideTimestamps);
 
   useEffect(() => {
     let frame = 0;
@@ -198,11 +199,12 @@ export function SeekBar({ compact = false, onDark = false }: { compact?: boolean
   const hoverProgress = hoverValue != null && duration ? Math.min(100, (hoverValue / duration) * 100) : null;
 
   return (
-    <div className={cn('flex w-full items-center gap-2.5', compact && 'gap-2')}>
+    <div className={cn('group/times flex w-full items-center gap-2.5', compact && 'gap-2')}>
       <span
         className={cn(
-          'w-9 shrink-0 text-right text-[11px] tabular-nums',
+          'w-9 shrink-0 text-right text-[11px] tabular-nums transition-opacity duration-200',
           onDark ? 'text-white/55' : 'text-muted',
+          autoHideTimes && 'opacity-0 group-hover/times:opacity-100',
           compact && 'w-8 text-[10px]',
         )}
       >
@@ -235,8 +237,9 @@ export function SeekBar({ compact = false, onDark = false }: { compact?: boolean
       </div>
       <span
         className={cn(
-          'w-9 shrink-0 text-[11px] tabular-nums',
+          'w-9 shrink-0 text-[11px] tabular-nums transition-opacity duration-200',
           onDark ? 'text-white/40' : 'text-faint',
+          autoHideTimes && 'opacity-0 group-hover/times:opacity-100',
           compact && 'w-8 text-[10px]',
         )}
       >

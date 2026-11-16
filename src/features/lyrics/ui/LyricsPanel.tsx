@@ -39,6 +39,7 @@ const ActiveSyllables = memo(function ActiveSyllables({
   const storedPosition = usePlayerStore((s) => s.position);
   const performanceMode = useSettingsStore((s) => s.performanceMode);
   const tightness = useSettingsStore((s) => s.gradientTightness);
+  const karaokeEnabled = useSettingsStore((s) => s.lyricsKaraoke);
   // Start from the audio clock, never the ~12 Hz store position: seeding from a
   // stale value made the sweep jump backwards on the first frame of a new line.
   const [position, setPosition] = useState(() => {
@@ -101,8 +102,9 @@ const ActiveSyllables = memo(function ActiveSyllables({
           );
         }
 
-        // Performance mode trades the sweep for a flat two-tone fill.
-        if (performanceMode) {
+        // Performance mode and "karaoke word highlighting" off both trade the
+        // sweep for a flat two-tone fill.
+        if (performanceMode || !karaokeEnabled) {
           return (
             <span key={key}>
               {lead}
@@ -193,6 +195,7 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
   // Dragging to read ahead parks auto-scroll; it resumes 3.5s after the last
   // interaction, so the lyrics never yank out from under a reader mid-line.
   const [manual, setManual] = useState(false);
+  const autoScroll = useSettingsStore((s) => s.lyricsAutoScroll);
   const [resumeNonce, setResumeNonce] = useState(0);
   const autoShift = useRef(0);
   const drag = useRef<{ y: number; base: number } | null>(null);
@@ -226,7 +229,7 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
   // composite-only property, so the browser never re-lays-out mid-song and the
   // motion can be eased properly. The active line settles at 38% height.
   useEffect(() => {
-    if (manual) return;
+    if (manual || !autoScroll) return;
     const viewport = containerRef.current;
     if (!viewport || !viewport.clientHeight) return;
     if (active < 0) {
@@ -242,7 +245,7 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
     setInstantScroll(jumped || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     autoShift.current = next;
     setShift(next);
-  }, [active, fullscreen, lines.length, manual, resumeNonce]);
+  }, [active, autoScroll, fullscreen, lines.length, manual, resumeNonce]);
 
   // Keep the column inside its content when dragged, and never let it travel so
   // far that the lyrics leave the viewport.

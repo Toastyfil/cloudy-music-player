@@ -53,6 +53,22 @@ export function App() {
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
   // and the softer variants the UI derives from it.
+  // Your own CSS, applied after the app's styles so it always wins.
+  const customCss = useSettingsStore((s) => s.customCss);
+  useEffect(() => {
+    let element = document.getElementById('cloudy-custom-css') as HTMLStyleElement | null;
+    if (!customCss.trim()) {
+      element?.remove();
+      return;
+    }
+    if (!element) {
+      element = document.createElement('style');
+      element.id = 'cloudy-custom-css';
+      document.head.appendChild(element);
+    }
+    element.textContent = customCss;
+  }, [customCss]);
+
   const customAccentEnabled = useSettingsStore((s) => s.customAccentEnabled);
   const accentHue = useSettingsStore((s) => s.accentHue);
   const accentSaturation = useSettingsStore((s) => s.accentSaturation);

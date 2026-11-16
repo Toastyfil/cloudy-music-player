@@ -258,6 +258,17 @@ body {
 }
 .animate-heart-pop { animation: cloudy-heart-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
+/* Hide the title bar until the pointer comes near the top edge (Settings →
+   Interface → Hide title bar). The bar keeps its space so nothing jumps. */
+header[data-autohide='on'] {
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+header[data-autohide='on']:hover,
+header[data-autohide='on']:focus-within {
+  opacity: 1;
+}
+
 /* Ambient accent mesh behind the app (Settings → Appearance → Background).
    Three slow radial washes in the accent hue, drifting out of step. */
 .cloudy-mesh {
