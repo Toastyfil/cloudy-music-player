@@ -44,6 +44,7 @@ import { LOCALES } from '@/shared/config/locales';
 import { useT } from '@/shared/lib/i18n';
 import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { cn } from '@/shared/lib/cn';
+import { SettingsPreview } from './SettingsPreview';
 
 /** English names, so typing "japanese" or "german" finds the native label. */
 const ENGLISH_NAMES = (() => {
@@ -501,6 +502,7 @@ export function SettingsDialog() {
 
               {tab === 'interface' ? (
                 <section>
+                  <SettingsPreview />
                   <h3 className="mb-3 text-[15px] font-semibold">Layout</h3>
                   <Row title="Search bar" description="A quick field in the title bar, or just the Search page.">
                     <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
@@ -748,6 +750,7 @@ export function SettingsDialog() {
 
               {tab === 'appearance' ? (
                 <section>
+                  <SettingsPreview />
                   <h3 className="mb-3 text-[15px] font-semibold">{t('language')}</h3>
                   <div className="relative mb-2.5">
                     <Search size={13} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />

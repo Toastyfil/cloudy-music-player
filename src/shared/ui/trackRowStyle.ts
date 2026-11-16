@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/cn';
 export function trackRowSurface({ classic, active = false }: { classic: boolean; active?: boolean }) {
   return cn(
     'group flex items-center gap-3 px-3 transition-all duration-150 focus-ring',
-    classic ? 'rounded-[20px] hover:scale-[1.004] active:scale-[0.999]' : 'rounded-lg',
+    classic ? 'rounded-[20px] hover:scale-[1.004] active:scale-[0.999]' : 'rounded-[var(--radius-card,8px)]',
     active ? 'bg-accent-soft' : 'hover:bg-surface/70',
   );
 }
