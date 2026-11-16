@@ -521,7 +521,7 @@ if ($Uninstaller) { Set-ItemProperty $key.PSPath -Name UninstallString -Value ('
 async function installWindowsZip(zip: string) {
   const version = state.version ?? 'latest';
   const currentExe = process.execPath;
-  const destination = path.join(windowsInstallRoot(), `app-${version}`);
+  const destination = await freeWindowsTarget(version);
   await logInstall(`install start zip=${zip} dest=${destination}`);
   const newExe = await expandWindowsZip(zip, destination);
   await logInstall(`expanded exe=${newExe}`);
@@ -552,8 +552,27 @@ async function logInstall(line: string) {
 }
 
 /** Unpacks the release zip and returns the executable inside it. */
+/**
+ * A folder that does not exist yet.
+ *
+ * Retrying an update must never remove the copy that is running: deleting its
+ * files fails half-way (EBUSY on the loaded app.asar) and leaves a folder that
+ * cannot start. An occupied name gets a numeric suffix instead.
+ */
+async function freeWindowsTarget(version: string) {
+  const root = windowsInstallRoot();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const destination = path.join(root, attempt === 0 ? `app-${version}` : `app-${version}-${attempt + 1}`);
+    const taken = await fs
+      .stat(destination)
+      .then(() => true)
+      .catch(() => false);
+    if (!taken) return destination;
+  }
+  throw new Error('There is no free folder for the update next to the app');
+}
+
 async function expandWindowsZip(zip: string, destination: string) {
-  await fs.rm(destination, { recursive: true, force: true });
   await fs.mkdir(destination, { recursive: true });
   // Windows ships bsdtar, which reads zip archives and is far quicker than
   // Expand-Archive. PowerShell stays as the fallback for the rare machine where
