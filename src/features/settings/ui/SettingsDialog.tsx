@@ -504,6 +504,33 @@ export function SettingsDialog() {
                 <section>
                   <SettingsPreview />
                   <h3 className="mb-3 text-[15px] font-semibold">Layout</h3>
+                  <Row title="Search bar placement" description="Where the quick field sits in the title bar.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['left', 'Left'],
+                        ['middle', 'Middle'],
+                        ['right', 'Right'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setSearchAlign(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.searchAlign === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Home button beside search" description="A small house that jumps to Home from any page.">
+                    <Toggle
+                      value={settings.showHomeButton}
+                      onChange={settings.setShowHomeButton}
+                      label="Home button beside search"
+                    />
+                  </Row>
                   <Row title="Search bar" description="A quick field in the title bar, or just the Search page.">
                     <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
                       {([
@@ -578,6 +605,62 @@ export function SettingsDialog() {
                           {label}
                         </button>
                       ))}
+                    </div>
+                  </Row>
+                  <Row title="Icon weight" description="Stroke thickness of every glyph.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={1}
+                        max={2.6}
+                        step={0.05}
+                        value={settings.iconWeight}
+                        onChange={(event) => settings.setIconWeight(Number(event.target.value))}
+                        aria-label="Icon weight"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">
+                        {settings.iconWeight.toFixed(2)}
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Visualizer in the player bar" description="The spectrum bars beside the player controls.">
+                    <Toggle
+                      value={settings.showPlaybarVisualizer}
+                      onChange={settings.setShowPlaybarVisualizer}
+                      label="Visualizer in the player bar"
+                    />
+                  </Row>
+                  <Row title="Visualizer opacity" description="How strongly the player-bar bars read against the bar.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={5}
+                        max={100}
+                        step={1}
+                        value={settings.playbarVisualizerOpacity}
+                        onChange={(event) => settings.setPlaybarVisualizerOpacity(Number(event.target.value))}
+                        aria-label="Visualizer opacity"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">
+                        {settings.playbarVisualizerOpacity}%
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Floating panel blur" description="Backdrop blur behind the lyrics, queue and title bar.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={48}
+                        step={1}
+                        value={settings.panelBlur}
+                        onChange={(event) => settings.setPanelBlur(Number(event.target.value))}
+                        aria-label="Floating panel blur"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.panelBlur}px</span>
                     </div>
                   </Row>
                   <Row title="Table columns" description="What a track row shows besides the cover, title and artist.">
@@ -904,6 +987,55 @@ export function SettingsDialog() {
                       label="Custom accent"
                     />
                   </Row>
+                  <Row
+                    title="Accent intensity"
+                    description="How far the accent bleeds into panels and buttons, from neutral to full tint."
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={settings.accentIntensity}
+                        onChange={(event) => settings.setAccentIntensity(Number(event.target.value))}
+                        aria-label="Accent intensity"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">
+                        {settings.accentIntensity}%
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Tint the background" description="Apply that intensity to panels and the app background, not just highlights.">
+                    <Toggle
+                      value={settings.tintBackground}
+                      onChange={settings.setTintBackground}
+                      label="Tint the background"
+                    />
+                  </Row>
+                  <Row title="Highlight buttons" description="Fill the main button of each screen with the accent colour.">
+                    <Toggle
+                      value={settings.highlightButtons}
+                      onChange={settings.setHighlightButtons}
+                      label="Highlight buttons"
+                    />
+                  </Row>
+                  <Row title="Mesh gradient brightness" description="Opacity of the coloured mesh behind the app.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={settings.meshBrightness}
+                        onChange={(event) => settings.setMeshBrightness(Number(event.target.value))}
+                        aria-label="Mesh gradient brightness"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.meshBrightness}%</span>
+                    </div>
+                  </Row>
                   <Row title="Hue" description="Where the accent sits on the colour wheel.">
                     <div className="flex items-center gap-3">
                       <input
@@ -1079,20 +1211,56 @@ export function SettingsDialog() {
                   <Row title="Animate background" description="A slow drift across the picture so a still frame never looks frozen.">
                     <Toggle value={settings.animateBackground} onChange={settings.setAnimateBackground} label="Animate background" />
                   </Row>
-                  <Row title="Banner fit" description="Fill the window, or letterbox the whole picture.">
+                  <Row title="Banner fit" description="Fit shows the whole picture, Zoom fills and crops, Stretch fills exactly.">
                     <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
-                      {(['cover', 'contain'] as const).map((fit) => (
+                      {([
+                        ['contain', 'Fit'],
+                        ['cover', 'Zoom'],
+                        ['stretch', 'Stretch'],
+                      ] as const).map(([fit, label]) => (
                         <button
                           key={fit}
                           onClick={() => settings.setBackgroundFit(fit)}
                           className={cn(
-                            'rounded-full px-3 py-1 text-[12px] capitalize transition-colors',
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
                             settings.backgroundFit === fit ? 'bg-accent text-black' : 'text-muted hover:text-text',
                           )}
                         >
-                          {fit}
+                          {label}
                         </button>
                       ))}
+                    </div>
+                  </Row>
+                  <Row title="Animation speed" description="Seconds for one pass of the background drift. Lower is livelier.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={12}
+                        max={48}
+                        step={1}
+                        value={settings.bannerAnimationSpeed}
+                        onChange={(event) => settings.setBannerAnimationSpeed(Number(event.target.value))}
+                        aria-label="Animation speed"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">
+                        {settings.bannerAnimationSpeed}s
+                      </span>
+                    </div>
+                  </Row>
+                  <Row title="Banner fade" description="Where the picture starts to dissolve into the app background.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={settings.bannerFade}
+                        onChange={(event) => settings.setBannerFade(Number(event.target.value))}
+                        aria-label="Banner fade"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.bannerFade}%</span>
                     </div>
                   </Row>
                   <p className="mt-3 text-[11.5px] leading-relaxed text-muted">
@@ -1656,6 +1824,32 @@ export function SettingsDialog() {
                     <span className="text-[12.5px] text-muted">
                       {cache ? `${cache.files} tracks · ${(cache.bytes / 1024 / 1024).toFixed(1)} MB` : '—'}
                     </span>
+                  </Row>
+                  <Row
+                    title="Export account backup"
+                    description="Settings, playlists, favourites and library in one JSON file you can keep or move."
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        const [stored, allPlaylists, favoriteTracks, libraryTracks] = await Promise.all([
+                          bridge().settings.all(),
+                          bridge().playlists.all(),
+                          bridge().favorites.all(),
+                          bridge().library.all(),
+                        ]);
+                        downloadJson(`cloudy-account-${new Date().toISOString().slice(0, 10)}.json`, {
+                          app: 'Cloudy',
+                          exportedAt: new Date().toISOString(),
+                          settings: stored,
+                          playlists: allPlaylists,
+                          favorites: favoriteTracks,
+                          library: libraryTracks,
+                        });
+                      }}
+                    >
+                      <Copy size={13} /> Export
+                    </Button>
                   </Row>
                   <Row title="Library" description="Saved tracks and playlists live in a local SQLite database.">
                     <span className="text-[12.5px] text-muted">

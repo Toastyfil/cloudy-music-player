@@ -28,6 +28,8 @@ export const PlayerBar = memo(function PlayerBar() {
   const t = useT();
   const playButtonBackground = useSettingsStore((s) => s.playButtonBackground);
   const atTop = useSettingsStore((s) => s.nowPlayingPosition) === 'top';
+  const showVisualizer = useSettingsStore((s) => s.showPlaybarVisualizer);
+  const visualizerOpacity = useSettingsStore((s) => s.playbarVisualizerOpacity);
   const track = usePlayerStore(selectCurrentTrack);
   const playing = usePlayerStore((s) => s.playing);
   const buffering = usePlayerStore((s) => s.buffering);
@@ -181,9 +183,11 @@ export const PlayerBar = memo(function PlayerBar() {
 
       {/* Right controls */}
       <div className="flex flex-1 items-center justify-end gap-1">
-        <div className="mr-1.5 hidden items-center xl:flex">
-          <Visualizer playing={playing} className="w-[76px]" />
-        </div>
+        {showVisualizer ? (
+          <div className="mr-1.5 hidden items-center xl:flex" style={{ opacity: visualizerOpacity / 100 }}>
+            <Visualizer playing={playing} className="w-[76px]" />
+          </div>
+        ) : null}
         <IconButton
           label="Lyrics"
           onClick={() => toggleLyrics()}

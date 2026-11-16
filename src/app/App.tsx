@@ -59,6 +59,14 @@ export function App() {
   const showTrackNumbers = useSettingsStore((s) => s.showTrackNumbers);
   const iconStyle = useSettingsStore((s) => s.iconStyle);
   const iconRoundness = useSettingsStore((s) => s.iconRoundness);
+  const iconWeight = useSettingsStore((s) => s.iconWeight);
+  const panelBlur = useSettingsStore((s) => s.panelBlur);
+  const highlightButtons = useSettingsStore((s) => s.highlightButtons);
+  const accentIntensity = useSettingsStore((s) => s.accentIntensity);
+  const tintBackground = useSettingsStore((s) => s.tintBackground);
+  const meshBrightness = useSettingsStore((s) => s.meshBrightness);
+  const bannerAnimationSpeed = useSettingsStore((s) => s.bannerAnimationSpeed);
+  const bannerFade = useSettingsStore((s) => s.bannerFade);
   const nowPlayingPosition = useSettingsStore((s) => s.nowPlayingPosition);
 
   useEffect(() => {
@@ -71,8 +79,33 @@ export function App() {
       trackNumbers: showTrackNumbers,
       iconStyle,
       iconRoundness,
+      iconWeight,
+      panelBlur,
+      highlightButtons,
+      accentIntensity,
+      tintBackground,
+      meshBrightness,
+      bannerAnimationSpeed,
+      bannerFade,
     });
-  }, [reduceMotion, noHandCursor, uiScale, cornerRadius, rowSize, showTrackNumbers, iconStyle, iconRoundness]);
+  }, [
+    reduceMotion,
+    noHandCursor,
+    uiScale,
+    cornerRadius,
+    rowSize,
+    showTrackNumbers,
+    iconStyle,
+    iconRoundness,
+    iconWeight,
+    panelBlur,
+    highlightButtons,
+    accentIntensity,
+    tintBackground,
+    meshBrightness,
+    bannerAnimationSpeed,
+    bannerFade,
+  ]);
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
   // and the softer variants the UI derives from it.
@@ -224,9 +257,11 @@ export function App() {
               'absolute inset-0 bg-center',
               backgroundFit === 'contain' ? 'bg-contain bg-no-repeat' : 'bg-cover',
               animateBackground && 'cloudy-bg-drift',
+              bannerFade < 100 && 'cloudy-banner-fade',
             )}
             style={{
               backgroundImage: `url(${backgroundImage})`,
+              backgroundSize: backgroundFit === 'stretch' ? '100% 100%' : undefined,
               filter: [
                 backgroundBlur ? `blur(${backgroundBlur}px)` : '',
                 backgroundBrightness !== 100 ? `brightness(${backgroundBrightness}%)` : '',

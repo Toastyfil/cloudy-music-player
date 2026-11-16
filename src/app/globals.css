@@ -258,6 +258,17 @@ body {
 }
 .animate-heart-pop { animation: cloudy-heart-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
+/* Icon weight (Settings → Interface). Presentation attributes lose to CSS, so
+   every Lucide glyph follows the slider without touching a single icon call. */
+svg.lucide {
+  stroke-width: var(--icon-weight, 1.75);
+}
+
+/* Accent intensity (Settings → Theme): bleed the accent into neutral panels. */
+html[data-tint='on'] [class*='bg-surface'] {
+  background-color: color-mix(in oklab, var(--accent) var(--accent-tint, 0%), var(--surface)) !important;
+}
+
 /* Filled glyphs (Settings → Interface → Icon style). Lucide draws strokes;
    a soft fill keeps the same silhouette but reads heavier. */
 html[data-icon-style='solid'] svg.lucide {
@@ -287,7 +298,7 @@ html[data-track-numbers='on'] .cloudy-track-row::before {
 
 /* Slow drift on the background picture (Settings → Banners → Animate). */
 .cloudy-bg-drift {
-  animation: cloudy-bg-zoom 44s ease-in-out infinite alternate;
+  animation: cloudy-bg-zoom var(--bg-drift-duration, 44s) ease-in-out infinite alternate;
 }
 
 @keyframes cloudy-bg-zoom {
@@ -297,6 +308,17 @@ html[data-track-numbers='on'] .cloudy-track-row::before {
 
 html[data-reduce-motion='on'] .cloudy-bg-drift {
   animation: none !important;
+}
+
+/* Banner fade: how far the picture stays fully opaque before it dissolves. */
+.cloudy-banner-fade {
+  mask-image: linear-gradient(to bottom, #000 0%, #000 var(--banner-fade, 100%), transparent 100%);
+}
+
+/* Floating panel blur (Settings → Interface). */
+.backdrop-blur-xl {
+  backdrop-filter: blur(var(--panel-blur, 10px));
+  -webkit-backdrop-filter: blur(var(--panel-blur, 10px));
 }
 
 /* Hide the title bar until the pointer comes near the top edge (Settings →
@@ -317,7 +339,7 @@ header[data-autohide='on']:focus-within {
     radial-gradient(38% 42% at 22% 28%, color-mix(in srgb, var(--accent) 42%, transparent) 0%, transparent 70%),
     radial-gradient(34% 38% at 78% 34%, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 72%),
     radial-gradient(46% 46% at 52% 88%, color-mix(in srgb, var(--accent) 26%, transparent) 0%, transparent 74%);
-  opacity: 0.5;
+  opacity: var(--mesh-brightness, 0.5);
   filter: blur(24px);
   animation: cloudy-mesh-drift 26s ease-in-out infinite alternate;
 }

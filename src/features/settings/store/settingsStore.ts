@@ -216,8 +216,8 @@ interface SettingsState {
   backgroundBrightness: number;
   /** Slow Ken-Burns drift on the background picture. */
   animateBackground: boolean;
-  /** cover = fill the window, contain = letterbox the whole picture. */
-  backgroundFit: 'cover' | 'contain';
+  /** cover = zoom and crop, contain = show the whole picture, stretch = fill exactly. */
+  backgroundFit: 'cover' | 'contain' | 'stretch';
   /** Always show the position number in track lists. */
   showTrackNumbers: boolean;
   /** Catalog badge (SOUNDCLOUD, DEEZER, …) next to the artist. */
@@ -244,6 +244,30 @@ interface SettingsState {
   showFavoriteColumn: boolean;
   /** Wave-shaped seek bar instead of a flat rule. */
   wavySeekBar: boolean;
+  /** Stroke weight for every Lucide glyph, 1 – 2.6. */
+  iconWeight: number;
+  /** Where the title-bar search sits: left, middle or right. */
+  searchAlign: 'left' | 'middle' | 'right';
+  /** A Home button beside the title-bar search. */
+  showHomeButton: boolean;
+  /** Spectrum bars in the player bar. */
+  showPlaybarVisualizer: boolean;
+  /** 5 – 100. */
+  playbarVisualizerOpacity: number;
+  /** Blur behind floating panels (lyrics, queue), 0 – 48. */
+  panelBlur: number;
+  /** Fill the main button of each screen with the accent. */
+  highlightButtons: boolean;
+  /** 0 – 100, how far the accent bleeds into neutral surfaces. */
+  accentIntensity: number;
+  /** Apply the accent intensity to panels and the background. */
+  tintBackground: boolean;
+  /** 0 – 100, opacity of the accent mesh. */
+  meshBrightness: number;
+  /** Banner animation period in seconds, 12 – 48. */
+  bannerAnimationSpeed: number;
+  /** 20 – 100, how far the banner fades towards the bottom. */
+  bannerFade: number;
   /** Fade the player-bar timestamps out until the pointer is over them. */
   autohideTimestamps: boolean;
   /** Hide the title bar until the pointer reaches the top edge. */
@@ -303,7 +327,7 @@ interface SettingsState {
   setCoverBackground: (on: boolean) => void;
   setBackgroundBrightness: (value: number) => void;
   setAnimateBackground: (on: boolean) => void;
-  setBackgroundFit: (fit: 'cover' | 'contain') => void;
+  setBackgroundFit: (fit: 'cover' | 'contain' | 'stretch') => void;
   setShowTrackNumbers: (on: boolean) => void;
   setShowSourceBadge: (on: boolean) => void;
   setShowLyricsWarnings: (on: boolean) => void;
@@ -317,6 +341,18 @@ interface SettingsState {
   setShowAlbumColumn: (on: boolean) => void;
   setShowFavoriteColumn: (on: boolean) => void;
   setWavySeekBar: (on: boolean) => void;
+  setIconWeight: (value: number) => void;
+  setSearchAlign: (align: 'left' | 'middle' | 'right') => void;
+  setShowHomeButton: (on: boolean) => void;
+  setShowPlaybarVisualizer: (on: boolean) => void;
+  setPlaybarVisualizerOpacity: (value: number) => void;
+  setPanelBlur: (value: number) => void;
+  setHighlightButtons: (on: boolean) => void;
+  setAccentIntensity: (value: number) => void;
+  setTintBackground: (on: boolean) => void;
+  setMeshBrightness: (value: number) => void;
+  setBannerAnimationSpeed: (value: number) => void;
+  setBannerFade: (value: number) => void;
   resetInterface: () => void;
   setOutputDeviceId: (id: string) => void;
   setInterfaceFont: (font: 'sans' | 'serif' | 'mono') => void;
@@ -400,6 +436,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showAlbumColumn: true,
   showFavoriteColumn: true,
   wavySeekBar: true,
+  iconWeight: 1.75,
+  searchAlign: 'middle',
+  showHomeButton: false,
+  showPlaybarVisualizer: true,
+  playbarVisualizerOpacity: 100,
+  panelBlur: 10,
+  highlightButtons: true,
+  accentIntensity: 0,
+  tintBackground: false,
+  meshBrightness: 50,
+  bannerAnimationSpeed: 44,
+  bannerFade: 100,
   outputDeviceId: '',
   showExplicitTag: true,
   interfaceFont: 'sans',
@@ -465,7 +513,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.backgroundBrightness === 'number')
         next.backgroundBrightness = Math.max(30, Math.min(130, Math.round(stored.backgroundBrightness)));
       if (typeof stored.animateBackground === 'boolean') next.animateBackground = stored.animateBackground;
-      if (stored.backgroundFit === 'cover' || stored.backgroundFit === 'contain')
+      if (stored.backgroundFit === 'cover' || stored.backgroundFit === 'contain' || stored.backgroundFit === 'stretch')
         next.backgroundFit = stored.backgroundFit;
       if (typeof stored.showTrackNumbers === 'boolean') next.showTrackNumbers = stored.showTrackNumbers;
       if (typeof stored.showSourceBadge === 'boolean') next.showSourceBadge = stored.showSourceBadge;
@@ -485,6 +533,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.showAlbumColumn === 'boolean') next.showAlbumColumn = stored.showAlbumColumn;
       if (typeof stored.showFavoriteColumn === 'boolean') next.showFavoriteColumn = stored.showFavoriteColumn;
       if (typeof stored.wavySeekBar === 'boolean') next.wavySeekBar = stored.wavySeekBar;
+      if (typeof stored.iconWeight === 'number')
+        next.iconWeight = Math.max(1, Math.min(2.6, stored.iconWeight));
+      if (stored.searchAlign === 'left' || stored.searchAlign === 'middle' || stored.searchAlign === 'right')
+        next.searchAlign = stored.searchAlign;
+      if (typeof stored.showHomeButton === 'boolean') next.showHomeButton = stored.showHomeButton;
+      if (typeof stored.showPlaybarVisualizer === 'boolean')
+        next.showPlaybarVisualizer = stored.showPlaybarVisualizer;
+      if (typeof stored.playbarVisualizerOpacity === 'number')
+        next.playbarVisualizerOpacity = Math.max(5, Math.min(100, Math.round(stored.playbarVisualizerOpacity)));
+      if (typeof stored.panelBlur === 'number') next.panelBlur = Math.max(0, Math.min(48, Math.round(stored.panelBlur)));
+      if (typeof stored.highlightButtons === 'boolean') next.highlightButtons = stored.highlightButtons;
+      if (typeof stored.accentIntensity === 'number')
+        next.accentIntensity = Math.max(0, Math.min(100, Math.round(stored.accentIntensity)));
+      if (typeof stored.tintBackground === 'boolean') next.tintBackground = stored.tintBackground;
+      if (typeof stored.meshBrightness === 'number')
+        next.meshBrightness = Math.max(0, Math.min(100, Math.round(stored.meshBrightness)));
+      if (typeof stored.bannerAnimationSpeed === 'number')
+        next.bannerAnimationSpeed = Math.max(12, Math.min(48, Math.round(stored.bannerAnimationSpeed)));
+      if (typeof stored.bannerFade === 'number')
+        next.bannerFade = Math.max(20, Math.min(100, Math.round(stored.bannerFade)));
       if (typeof stored.outputDeviceId === 'string') next.outputDeviceId = stored.outputDeviceId;
       if (typeof stored.showExplicitTag === 'boolean') next.showExplicitTag = stored.showExplicitTag;
       if (stored.interfaceFont === 'sans' || stored.interfaceFont === 'serif' || stored.interfaceFont === 'mono')
@@ -826,6 +894,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       showAlbumColumn: true,
       showFavoriteColumn: true,
       wavySeekBar: true,
+      iconWeight: 1.75,
+      searchAlign: 'middle' as const,
+      showHomeButton: false,
+      showPlaybarVisualizer: true,
+      playbarVisualizerOpacity: 100,
+      panelBlur: 10,
+      highlightButtons: true,
+      accentIntensity: 0,
+      tintBackground: false,
+      meshBrightness: 50,
+      bannerAnimationSpeed: 44,
+      bannerFade: 100,
       reduceMotion: false,
       noHandCursor: false,
       uiScale: 1,
@@ -904,6 +984,73 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setWavySeekBar(on) {
     set({ wavySeekBar: on });
     persistKey('wavySeekBar', on);
+  },
+
+  setIconWeight(value) {
+    const next = Math.max(1, Math.min(2.6, value));
+    set({ iconWeight: next });
+    persistKey('iconWeight', next);
+  },
+
+  setSearchAlign(align) {
+    set({ searchAlign: align });
+    persistKey('searchAlign', align);
+  },
+
+  setShowHomeButton(on) {
+    set({ showHomeButton: on });
+    persistKey('showHomeButton', on);
+  },
+
+  setShowPlaybarVisualizer(on) {
+    set({ showPlaybarVisualizer: on });
+    persistKey('showPlaybarVisualizer', on);
+  },
+
+  setPlaybarVisualizerOpacity(value) {
+    const next = Math.max(5, Math.min(100, Math.round(value)));
+    set({ playbarVisualizerOpacity: next });
+    persistKey('playbarVisualizerOpacity', next);
+  },
+
+  setPanelBlur(value) {
+    const next = Math.max(0, Math.min(48, Math.round(value)));
+    set({ panelBlur: next });
+    persistKey('panelBlur', next);
+  },
+
+  setHighlightButtons(on) {
+    set({ highlightButtons: on });
+    persistKey('highlightButtons', on);
+  },
+
+  setAccentIntensity(value) {
+    const next = Math.max(0, Math.min(100, Math.round(value)));
+    set({ accentIntensity: next });
+    persistKey('accentIntensity', next);
+  },
+
+  setTintBackground(on) {
+    set({ tintBackground: on });
+    persistKey('tintBackground', on);
+  },
+
+  setMeshBrightness(value) {
+    const next = Math.max(0, Math.min(100, Math.round(value)));
+    set({ meshBrightness: next });
+    persistKey('meshBrightness', next);
+  },
+
+  setBannerAnimationSpeed(value) {
+    const next = Math.max(12, Math.min(48, Math.round(value)));
+    set({ bannerAnimationSpeed: next });
+    persistKey('bannerAnimationSpeed', next);
+  },
+
+  setBannerFade(value) {
+    const next = Math.max(20, Math.min(100, Math.round(value)));
+    set({ bannerFade: next });
+    persistKey('bannerFade', next);
   },
 
   setAutohideTimestamps(on) {

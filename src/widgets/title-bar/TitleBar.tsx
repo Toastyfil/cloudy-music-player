@@ -1,4 +1,4 @@
-import { Minus, Search, Square, X, Copy, LogOut } from 'lucide-react';
+import { House, Minus, Search, Square, X, Copy, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { bridge, isElectron } from '@/shared/api/bridge';
@@ -14,6 +14,8 @@ export function TitleBar() {
   const transparent = useSettingsStore((s) => s.windowTransparent);
   const autoHide = useSettingsStore((s) => s.titleBarAutoHide);
   const searchInTitle = useSettingsStore((s) => s.searchPosition) === 'title';
+  const searchAlign = useSettingsStore((s) => s.searchAlign);
+  const showHomeButton = useSettingsStore((s) => s.showHomeButton);
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
 
@@ -69,8 +71,24 @@ export function TitleBar() {
       </div>
 
       {searchInTitle ? (
+        <div
+          className={`no-drag mx-3 flex min-w-0 flex-1 items-center gap-2 ${
+            searchAlign === 'left' ? 'justify-start' : searchAlign === 'right' ? 'justify-end' : 'justify-center'
+          }`}
+        >
+        {showHomeButton ? (
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            aria-label="Home"
+            title="Home"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-text focus-ring"
+          >
+            <House size={14} />
+          </button>
+        ) : null}
         <form
-          className="no-drag mx-3 flex h-7 min-w-0 max-w-[340px] flex-1 items-center gap-2 rounded-full border border-line bg-surface/60 px-3"
+          className="flex h-7 min-w-0 w-full max-w-[340px] items-center gap-2 rounded-full border border-line bg-surface/60 px-3"
           onSubmit={(event) => {
             event.preventDefault();
             const value = query.trim();
@@ -86,6 +104,7 @@ export function TitleBar() {
             className="min-w-0 flex-1 bg-transparent text-[12px] text-text outline-none placeholder:text-faint"
           />
         </form>
+        </div>
       ) : null}
 
       <div className="flex items-center gap-1">
