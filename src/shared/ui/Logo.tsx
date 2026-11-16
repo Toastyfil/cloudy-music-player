@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/features/settings/store/settingsStore';
  * so switching one for another never changes the weight of the title bar.
  */
 export const LOGO_VARIANTS = [
+  { id: 'bloom', name: 'Bloom' },
   { id: 'cloud', name: 'Cloud' },
   { id: 'wave-circle', name: 'Wave circle' },
   { id: 'twin-triangles', name: 'Twin triangles' },
@@ -26,6 +27,18 @@ export const LOGO_VARIANTS = [
 export type LogoVariant = (typeof LOGO_VARIANTS)[number]['id'];
 
 const MARKS: Record<LogoVariant, ReactNode> = {
+  // Riff-like bloom: five overlapping lobes around a soft centre, drawn as one
+  // family of 24px circles so it reads as a mark rather than an illustration.
+  bloom: (
+    <>
+      <circle cx="12" cy="7.6" r="4.5" />
+      <circle cx="16.4" cy="11.2" r="4.5" opacity="0.85" />
+      <circle cx="14.8" cy="16.4" r="4.5" opacity="0.7" />
+      <circle cx="9.2" cy="16.4" r="4.5" opacity="0.7" />
+      <circle cx="7.6" cy="11.2" r="4.5" opacity="0.85" />
+      <circle cx="12" cy="11.8" r="2.1" opacity="0.45" strokeWidth="1.2" />
+    </>
+  ),
   cloud: <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />,
   'wave-circle': (
     <>

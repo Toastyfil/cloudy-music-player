@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 import { bridge } from '@/shared/api/bridge';
@@ -6,24 +6,19 @@ import type { LibraryPlaylist } from '@/shared/api/contracts';
 import { useUiStore } from '../store/uiStore';
 import { useT } from '@/shared/lib/i18n';
 import type { TranslationKey } from '@/shared/config/locales';
-import {
-  CloudAlbum,
-  CloudHeart,
-  CloudHouse,
-  CloudPlaylist,
-  CloudPlus,
-  CloudQueue,
-  CloudSearch,
-} from '@/shared/ui/CloudyIcons';
+import { Heart, House, Library, ListMusic, Rows3, Search, type LucideIcon } from 'lucide-react';
+import { CloudPlaylist, CloudPlus } from '@/shared/ui/CloudyIcons';
 
-type NavIcon = (props: { size?: number; className?: string; active?: boolean }) => ReactElement;
+type NavIcon = LucideIcon;
 
+// Outline glyphs on the same 24px grid and 1.75 stroke, in the order Riff keeps
+// them, so the rail reads as one family instead of a cloud-shaped set.
 const NAV: { to: string; key: TranslationKey; Icon: NavIcon; end?: boolean }[] = [
-  { to: '/', key: 'home', Icon: CloudHouse, end: true },
-  { to: '/search', key: 'search', Icon: CloudSearch },
-  { to: '/favorites', key: 'favorites', Icon: CloudHeart },
-  { to: '/library', key: 'library', Icon: CloudAlbum },
-  { to: '/playlists', key: 'playlists', Icon: CloudPlaylist },
+  { to: '/', key: 'home', Icon: House, end: true },
+  { to: '/search', key: 'search', Icon: Search },
+  { to: '/favorites', key: 'favorites', Icon: Heart },
+  { to: '/library', key: 'library', Icon: Library },
+  { to: '/playlists', key: 'playlists', Icon: ListMusic },
 ];
 
 const ITEM =
@@ -100,9 +95,9 @@ export function Sidebar() {
             )
           }
         >
-          {({ isActive }) => (
+          {() => (
             <>
-              <Icon size={19} active={isActive} />
+              <Icon size={19} strokeWidth={1.75} />
               <Tip>{t(key)}</Tip>
             </>
           )}
@@ -119,7 +114,7 @@ export function Sidebar() {
             : 'text-muted hover:bg-surface/50 hover:text-text/90',
         )}
       >
-        <CloudQueue size={19} active={queueOpen} />
+        <Rows3 size={19} strokeWidth={1.75} className={queueOpen ? 'text-accent' : undefined} />
         <Tip>{t('queue')}</Tip>
       </button>
 

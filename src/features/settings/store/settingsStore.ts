@@ -229,7 +229,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   dynamicColor: true,
   pan: 0,
   mono: false,
-  logoVariant: 'cloud',
+  logoVariant: 'bloom',
   waveRing: true,
   performanceMode: false,
   lyricsSpeed: 1,
