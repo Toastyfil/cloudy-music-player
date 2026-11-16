@@ -10,6 +10,7 @@ import { QueuePanel } from '@/features/queue/ui/QueuePanel';
 import { LyricsPanel } from '@/features/lyrics/ui/LyricsPanel';
 import { SettingsDialog } from '@/features/settings/ui/SettingsDialog';
 import { ImportDialog } from '@/features/importer/ui/ImportDialog';
+import { OnboardingDialog } from '@/features/onboarding/ui/OnboardingDialog';
 import { AppRoutes } from './routes';
 import { useUiStore } from '@/features/navigation/store/uiStore';
 import { usePlayerStore, selectCurrentTrack } from '@/features/player/store/playerStore';
@@ -33,6 +34,8 @@ export function App() {
   const hydrate = usePlayerStore((s) => s.hydrate);
   const loadLyrics = useLyricsStore((s) => s.load);
   const loadSettings = useSettingsStore((s) => s.load);
+  const settingsLoaded = useSettingsStore((s) => s.loaded);
+  const onboardingComplete = useSettingsStore((s) => s.onboardingComplete);
 
   useGlobalShortcuts();
   useAudioBindings();
@@ -122,6 +125,7 @@ export function App() {
       </div>
 
       <UpdateDialog />
+      {settingsLoaded && !onboardingComplete ? <OnboardingDialog /> : null}
 
       <AdaptiveAccent />
       <PlayerBar />

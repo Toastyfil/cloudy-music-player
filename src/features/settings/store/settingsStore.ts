@@ -170,6 +170,8 @@ interface SettingsState {
   dspPresets: Record<string, DspSettings>;
   /** Fade length for play/pause, 0 disables it. */
   fadeMs: number;
+  /** The first-run tour is finished; survives updates because settings do. */
+  onboardingComplete: boolean;
   loaded: boolean;
   load: () => Promise<void>;
   setTheme: (id: string) => void;
@@ -203,6 +205,7 @@ interface SettingsState {
   deleteDspPreset: (name: string) => void;
   setFadeMs: (ms: number) => void;
   resetAudio: () => void;
+  completeOnboarding: () => void;
 }
 
 const persistKey = (key: string, value: unknown) => {
@@ -237,6 +240,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   dspPreset: 'clean',
   dspPresets: {},
   fadeMs: 0,
+  onboardingComplete: false,
   loaded: false,
 
   async load() {
@@ -251,6 +255,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (stored.audioQuality === 'high' || stored.audioQuality === 'medium') next.audioQuality = stored.audioQuality;
       if (typeof stored.lyricsOffset === 'number') next.lyricsOffset = stored.lyricsOffset;
       if (typeof stored.windowTransparent === 'boolean') next.windowTransparent = stored.windowTransparent;
+      if (stored.onboardingComplete === true) next.onboardingComplete = true;
       if (typeof stored.windowOpacity === 'number') next.windowOpacity = stored.windowOpacity;
       if (typeof stored.locale === 'string') next.locale = normalizeLocale(stored.locale);
       if (stored.shortcuts && typeof stored.shortcuts === 'object') {
@@ -340,6 +345,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   /** The Electron main process rebuilds the window so the flag can take effect. */
+  completeOnboarding() {
+    set({ onboardingComplete: true });
+    persistKey('onboardingComplete', true);
+  },
+
   setWindowTransparent(enabled) {
     set({ windowTransparent: enabled });
     setWindowAlpha(enabled ? get().windowOpacity : 1);
