@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { bridge } from '@/shared/api/bridge';
-import { DEFAULT_THEME_ID, findTheme, applyTheme, setWindowAlpha, type Theme } from '@/shared/config/themes';
+import {
+  DEFAULT_THEME_ID,
+  findTheme,
+  applyTheme,
+  setWindowAlpha,
+  themeForMode,
+  type Theme,
+} from '@/shared/config/themes';
 import { DEFAULT_LOCALE, type Locale } from '@/shared/config/locales';
 import { normalizeLocale, setLocale } from '@/shared/lib/i18n';
 import {
@@ -268,6 +275,46 @@ interface SettingsState {
   bannerAnimationSpeed: number;
   /** 20 – 100, how far the banner fades towards the bottom. */
   bannerFade: number;
+  /** Glyph on the Home "listening right now" badge. */
+  topMomentIcon: 'heart' | 'honey' | 'star' | 'fire' | 'cloud';
+  /** Draw the Cloudy mark beside the Home greeting. */
+  showHomeLogo: boolean;
+  /** Now Playing title alignment. */
+  nowPlayingTitleAlign: 'left' | 'center';
+  /** Where the transport sits on the Now Playing screen. */
+  nowPlayingToolbarPosition:
+    | 'top-center'
+    | 'top-left'
+    | 'top-right'
+    | 'bottom-center'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'left-center'
+    | 'right-center';
+  /** Default keeps the artist line; Compact drops it for a tighter row. */
+  trackCardStyle: 'default' | 'compact';
+  /** Spectrum inside the Now Playing panel. */
+  showNowPlayingVisualizer: boolean;
+  /** Visualizer beside the controls, or stretched behind the whole bar. */
+  playbarVisualizerPosition: 'compact' | 'behind';
+  /** 20 – 100, opacity of surface panels. */
+  interfaceOpacity: number;
+  /** Bars or a single waving line. */
+  visualizerStyle: 'bars' | 'wave';
+  /** Morphing cover shape in the player bar. */
+  shapedCover: boolean;
+  /** Morphing cover shape on the Now Playing and karaoke screens. */
+  shapedCoversNowPlaying: boolean;
+  /** Artwork backdrop inside the Now Playing panel. */
+  nowPlayingBanner: boolean;
+  /** Artwork backdrop on playlist pages. */
+  playlistBanners: boolean;
+  /** Blur of the cover banner, 0 – 12. */
+  bannerBlur: number;
+  /** Opacity of the cover banner, 20 – 100. */
+  bannerOpacity: number;
+  /** Theme mode override; auto keeps the palette's own darkness. */
+  themeMode: 'auto' | 'dark' | 'light';
   /** Fade the player-bar timestamps out until the pointer is over them. */
   autohideTimestamps: boolean;
   /** Hide the title bar until the pointer reaches the top edge. */
@@ -353,6 +400,22 @@ interface SettingsState {
   setMeshBrightness: (value: number) => void;
   setBannerAnimationSpeed: (value: number) => void;
   setBannerFade: (value: number) => void;
+  setTopMomentIcon: (icon: 'heart' | 'honey' | 'star' | 'fire' | 'cloud') => void;
+  setShowHomeLogo: (on: boolean) => void;
+  setNowPlayingTitleAlign: (align: 'left' | 'center') => void;
+  setNowPlayingToolbarPosition: (position: SettingsState['nowPlayingToolbarPosition']) => void;
+  setTrackCardStyle: (style: 'default' | 'compact') => void;
+  setShowNowPlayingVisualizer: (on: boolean) => void;
+  setPlaybarVisualizerPosition: (position: 'compact' | 'behind') => void;
+  setInterfaceOpacity: (value: number) => void;
+  setVisualizerStyle: (style: 'bars' | 'wave') => void;
+  setShapedCover: (on: boolean) => void;
+  setShapedCoversNowPlaying: (on: boolean) => void;
+  setNowPlayingBanner: (on: boolean) => void;
+  setPlaylistBanners: (on: boolean) => void;
+  setBannerBlur: (value: number) => void;
+  setBannerOpacity: (value: number) => void;
+  setThemeMode: (mode: 'auto' | 'dark' | 'light') => void;
   resetInterface: () => void;
   setOutputDeviceId: (id: string) => void;
   setInterfaceFont: (font: 'sans' | 'serif' | 'mono') => void;
@@ -448,6 +511,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   meshBrightness: 50,
   bannerAnimationSpeed: 44,
   bannerFade: 100,
+  topMomentIcon: 'heart',
+  showHomeLogo: false,
+  nowPlayingTitleAlign: 'left',
+  nowPlayingToolbarPosition: 'top-center',
+  trackCardStyle: 'default',
+  showNowPlayingVisualizer: false,
+  playbarVisualizerPosition: 'compact',
+  interfaceOpacity: 100,
+  visualizerStyle: 'bars',
+  shapedCover: false,
+  shapedCoversNowPlaying: false,
+  nowPlayingBanner: false,
+  playlistBanners: false,
+  bannerBlur: 0,
+  bannerOpacity: 100,
+  themeMode: 'auto',
   outputDeviceId: '',
   showExplicitTag: true,
   interfaceFont: 'sans',
@@ -553,6 +632,33 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         next.bannerAnimationSpeed = Math.max(12, Math.min(48, Math.round(stored.bannerAnimationSpeed)));
       if (typeof stored.bannerFade === 'number')
         next.bannerFade = Math.max(20, Math.min(100, Math.round(stored.bannerFade)));
+      if (stored.topMomentIcon === 'heart' || stored.topMomentIcon === 'honey' || stored.topMomentIcon === 'star' || stored.topMomentIcon === 'fire' || stored.topMomentIcon === 'cloud')
+        next.topMomentIcon = stored.topMomentIcon;
+      if (typeof stored.showHomeLogo === 'boolean') next.showHomeLogo = stored.showHomeLogo;
+      if (stored.nowPlayingTitleAlign === 'left' || stored.nowPlayingTitleAlign === 'center')
+        next.nowPlayingTitleAlign = stored.nowPlayingTitleAlign;
+      if (typeof stored.nowPlayingToolbarPosition === 'string' && stored.nowPlayingToolbarPosition.includes('-'))
+        next.nowPlayingToolbarPosition = stored.nowPlayingToolbarPosition as SettingsState['nowPlayingToolbarPosition'];
+      if (stored.trackCardStyle === 'default' || stored.trackCardStyle === 'compact')
+        next.trackCardStyle = stored.trackCardStyle;
+      if (typeof stored.showNowPlayingVisualizer === 'boolean')
+        next.showNowPlayingVisualizer = stored.showNowPlayingVisualizer;
+      if (stored.playbarVisualizerPosition === 'compact' || stored.playbarVisualizerPosition === 'behind')
+        next.playbarVisualizerPosition = stored.playbarVisualizerPosition;
+      if (typeof stored.interfaceOpacity === 'number')
+        next.interfaceOpacity = Math.max(20, Math.min(100, Math.round(stored.interfaceOpacity)));
+      if (stored.visualizerStyle === 'bars' || stored.visualizerStyle === 'wave')
+        next.visualizerStyle = stored.visualizerStyle;
+      if (typeof stored.shapedCover === 'boolean') next.shapedCover = stored.shapedCover;
+      if (typeof stored.shapedCoversNowPlaying === 'boolean')
+        next.shapedCoversNowPlaying = stored.shapedCoversNowPlaying;
+      if (typeof stored.nowPlayingBanner === 'boolean') next.nowPlayingBanner = stored.nowPlayingBanner;
+      if (typeof stored.playlistBanners === 'boolean') next.playlistBanners = stored.playlistBanners;
+      if (typeof stored.bannerBlur === 'number') next.bannerBlur = Math.max(0, Math.min(12, stored.bannerBlur));
+      if (typeof stored.bannerOpacity === 'number')
+        next.bannerOpacity = Math.max(20, Math.min(100, Math.round(stored.bannerOpacity)));
+      if (stored.themeMode === 'auto' || stored.themeMode === 'dark' || stored.themeMode === 'light')
+        next.themeMode = stored.themeMode;
       if (typeof stored.outputDeviceId === 'string') next.outputDeviceId = stored.outputDeviceId;
       if (typeof stored.showExplicitTag === 'boolean') next.showExplicitTag = stored.showExplicitTag;
       if (stored.interfaceFont === 'sans' || stored.interfaceFont === 'serif' || stored.interfaceFont === 'mono')
@@ -599,7 +705,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       setLocale(next.locale ?? get().locale);
       const transparent = next.windowTransparent ?? get().windowTransparent;
       setWindowAlpha(transparent ? (next.windowOpacity ?? get().windowOpacity) : 1);
-      applyTheme(findTheme(next.themeId ?? get().themeId));
+      applyTheme(themeForMode(findTheme(next.themeId ?? get().themeId), next.themeMode ?? get().themeMode));
       void bridge().presence.setEnabled(next.discordEnabled ?? get().discordEnabled);
     } catch {
       set({ loaded: true });
@@ -609,9 +715,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setTheme(id) {
     const theme = findTheme(id);
-    applyTheme(theme);
     set({ themeId: theme.id });
+    applyTheme(themeForMode(theme, get().themeMode));
     persistKey('themeId', theme.id);
+  },
+
+  setThemeMode(mode) {
+    set({ themeMode: mode });
+    applyTheme(themeForMode(findTheme(get().themeId), mode));
+    persistKey('themeMode', mode);
   },
 
   currentTheme() {
@@ -906,6 +1018,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       meshBrightness: 50,
       bannerAnimationSpeed: 44,
       bannerFade: 100,
+      topMomentIcon: 'heart' as const,
+      showHomeLogo: false,
+      nowPlayingTitleAlign: 'left' as const,
+      nowPlayingToolbarPosition: 'top-center' as const,
+      trackCardStyle: 'default' as const,
+      showNowPlayingVisualizer: false,
+      playbarVisualizerPosition: 'compact' as const,
+      interfaceOpacity: 100,
+      visualizerStyle: 'bars' as const,
+      shapedCover: false,
+      shapedCoversNowPlaying: false,
+      nowPlayingBanner: false,
+      playlistBanners: false,
+      bannerBlur: 0,
+      bannerOpacity: 100,
+      themeMode: 'auto' as const,
       reduceMotion: false,
       noHandCursor: false,
       uiScale: 1,
@@ -1051,6 +1179,84 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const next = Math.max(20, Math.min(100, Math.round(value)));
     set({ bannerFade: next });
     persistKey('bannerFade', next);
+  },
+
+  setTopMomentIcon(icon) {
+    set({ topMomentIcon: icon });
+    persistKey('topMomentIcon', icon);
+  },
+
+  setShowHomeLogo(on) {
+    set({ showHomeLogo: on });
+    persistKey('showHomeLogo', on);
+  },
+
+  setNowPlayingTitleAlign(align) {
+    set({ nowPlayingTitleAlign: align });
+    persistKey('nowPlayingTitleAlign', align);
+  },
+
+  setNowPlayingToolbarPosition(position) {
+    set({ nowPlayingToolbarPosition: position });
+    persistKey('nowPlayingToolbarPosition', position);
+  },
+
+  setTrackCardStyle(style) {
+    set({ trackCardStyle: style });
+    persistKey('trackCardStyle', style);
+  },
+
+  setShowNowPlayingVisualizer(on) {
+    set({ showNowPlayingVisualizer: on });
+    persistKey('showNowPlayingVisualizer', on);
+  },
+
+  setPlaybarVisualizerPosition(position) {
+    set({ playbarVisualizerPosition: position });
+    persistKey('playbarVisualizerPosition', position);
+  },
+
+  setInterfaceOpacity(value) {
+    const next = Math.max(20, Math.min(100, Math.round(value)));
+    set({ interfaceOpacity: next });
+    persistKey('interfaceOpacity', next);
+  },
+
+  setVisualizerStyle(style) {
+    set({ visualizerStyle: style });
+    persistKey('visualizerStyle', style);
+  },
+
+  setShapedCover(on) {
+    set({ shapedCover: on });
+    persistKey('shapedCover', on);
+  },
+
+  setShapedCoversNowPlaying(on) {
+    set({ shapedCoversNowPlaying: on });
+    persistKey('shapedCoversNowPlaying', on);
+  },
+
+  setNowPlayingBanner(on) {
+    set({ nowPlayingBanner: on });
+    persistKey('nowPlayingBanner', on);
+  },
+
+  setPlaylistBanners(on) {
+    set({ playlistBanners: on });
+    persistKey('playlistBanners', on);
+  },
+
+  setBannerBlur(value) {
+    const next = Math.max(0, Math.min(12, value));
+    set({ bannerBlur: next });
+    persistKey('bannerBlur', next);
+  },
+
+  setBannerOpacity(value) {
+    const next = Math.max(20, Math.min(100, Math.round(value)));
+    set({ bannerOpacity: next });
+    persistKey('bannerOpacity', next);
   },
 
   setAutohideTimestamps(on) {

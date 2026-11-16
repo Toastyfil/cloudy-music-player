@@ -20,6 +20,7 @@ export type InterfaceSettings = {
   meshBrightness: number;
   bannerAnimationSpeed: number;
   bannerFade: number;
+  interfaceOpacity: number;
 };
 
 export function applyInterfaceSettings(settings: InterfaceSettings) {
@@ -37,6 +38,7 @@ export function applyInterfaceSettings(settings: InterfaceSettings) {
   root.style.setProperty('--mesh-brightness', String(settings.meshBrightness / 100));
   root.style.setProperty('--bg-drift-duration', `${settings.bannerAnimationSpeed}s`);
   root.style.setProperty('--banner-fade', `${settings.bannerFade}%`);
+  root.style.setProperty('--ui-opacity', `${settings.interfaceOpacity}%`);
   // Primary buttons either take the accent fill or stay neutral; both are CSS
   // variables so the Button component needs no store access of its own.
   root.style.setProperty('--btn-primary-bg', settings.highlightButtons ? 'var(--accent)' : 'var(--surface)');

@@ -67,6 +67,9 @@ export function App() {
   const meshBrightness = useSettingsStore((s) => s.meshBrightness);
   const bannerAnimationSpeed = useSettingsStore((s) => s.bannerAnimationSpeed);
   const bannerFade = useSettingsStore((s) => s.bannerFade);
+  const bannerBlur = useSettingsStore((s) => s.bannerBlur);
+  const bannerOpacity = useSettingsStore((s) => s.bannerOpacity);
+  const interfaceOpacity = useSettingsStore((s) => s.interfaceOpacity);
   const nowPlayingPosition = useSettingsStore((s) => s.nowPlayingPosition);
 
   useEffect(() => {
@@ -87,6 +90,7 @@ export function App() {
       meshBrightness,
       bannerAnimationSpeed,
       bannerFade,
+      interfaceOpacity,
     });
   }, [
     reduceMotion,
@@ -105,6 +109,7 @@ export function App() {
     meshBrightness,
     bannerAnimationSpeed,
     bannerFade,
+    interfaceOpacity,
   ]);
 
   // Custom accent, Riff-style: hue, saturation and lightness drive the accent
@@ -263,12 +268,14 @@ export function App() {
               backgroundImage: `url(${backgroundImage})`,
               backgroundSize: backgroundFit === 'stretch' ? '100% 100%' : undefined,
               filter: [
-                backgroundBlur ? `blur(${backgroundBlur}px)` : '',
+                (coverBackground ? bannerBlur : backgroundBlur)
+                  ? `blur(${coverBackground ? bannerBlur : backgroundBlur}px)`
+                  : '',
                 backgroundBrightness !== 100 ? `brightness(${backgroundBrightness}%)` : '',
               ]
                 .filter(Boolean)
                 .join(' ') || undefined,
-              opacity: backgroundOpacity / 100,
+              opacity: (coverBackground ? bannerOpacity : backgroundOpacity) / 100,
               transform: backgroundBlur ? 'scale(1.08)' : undefined,
             }}
           />

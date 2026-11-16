@@ -30,6 +30,8 @@ export const PlayerBar = memo(function PlayerBar() {
   const atTop = useSettingsStore((s) => s.nowPlayingPosition) === 'top';
   const showVisualizer = useSettingsStore((s) => s.showPlaybarVisualizer);
   const visualizerOpacity = useSettingsStore((s) => s.playbarVisualizerOpacity);
+  const visualizerPosition = useSettingsStore((s) => s.playbarVisualizerPosition);
+  const shapedCover = useSettingsStore((s) => s.shapedCover);
   const track = usePlayerStore(selectCurrentTrack);
   const playing = usePlayerStore((s) => s.playing);
   const buffering = usePlayerStore((s) => s.buffering);
@@ -55,20 +57,30 @@ export const PlayerBar = memo(function PlayerBar() {
   return (
     <footer
       className={cn(
-        'relative z-30 flex h-[72px] shrink-0 items-center gap-4 border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-xl',
+        'relative z-30 flex h-[72px] shrink-0 items-center gap-4 overflow-hidden border-line bg-[color:var(--bg)]/88 px-4 backdrop-blur-xl',
         atTop ? 'border-b' : 'border-t',
       )}
     >
+      {showVisualizer && visualizerPosition === 'behind' ? (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ opacity: visualizerOpacity / 100 }}
+        >
+          <Visualizer playing={playing} bars={56} className="h-full w-full" />
+        </div>
+      ) : null}
       {/* Track */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <WavyProgressRing
-          src={track?.thumbnail}
-          alt={track?.title ?? ''}
-          size={54}
-          thickness={3}
-          playing={playing}
-          interactive={false}
-        />
+        <div className={cn('shrink-0', shapedCover && 'cloudy-cover-shape')}>
+          <WavyProgressRing
+            src={track?.thumbnail}
+            alt={track?.title ?? ''}
+            size={54}
+            thickness={3}
+            playing={playing}
+            interactive={false}
+          />
+        </div>
         <div className="min-w-0 flex-1">
           <p className={cn('truncate text-[13.5px] font-medium', !track && 'text-muted')}>
             {track ? track.title : t('nothingPlaying')}
@@ -183,7 +195,7 @@ export const PlayerBar = memo(function PlayerBar() {
 
       {/* Right controls */}
       <div className="flex flex-1 items-center justify-end gap-1">
-        {showVisualizer ? (
+        {showVisualizer && visualizerPosition === 'compact' ? (
           <div className="mr-1.5 hidden items-center xl:flex" style={{ opacity: visualizerOpacity / 100 }}>
             <Visualizer playing={playing} className="w-[76px]" />
           </div>

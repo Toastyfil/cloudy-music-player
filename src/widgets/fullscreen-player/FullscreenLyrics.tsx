@@ -23,6 +23,7 @@ import { useFavoritesStore } from '@/features/favorites/store/favoritesStore';
 import { SeekBar } from '@/features/player/ui/SeekBar';
 import { VolumeControl } from '@/features/player/ui/VolumeControl';
 import { sourceLabel } from '@/shared/config/sources';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
 
 const DARK_ICON = 'text-white/65 hover:bg-white/10 hover:text-white';
 
@@ -39,6 +40,9 @@ export function FullscreenLyrics() {
   const index = usePlayerStore((s) => s.index);
   const length = usePlayerStore((s) => s.queue.length);
   const playing = usePlayerStore((s) => s.playing);
+  const shapedCoversNowPlaying = useSettingsStore((s) => s.shapedCoversNowPlaying);
+  const titleAlign = useSettingsStore((s) => s.nowPlayingTitleAlign);
+  const toolbarPosition = useSettingsStore((s) => s.nowPlayingToolbarPosition);
   const buffering = usePlayerStore((s) => s.buffering);
   const repeat = usePlayerStore((s) => s.repeat);
   const shuffle = usePlayerStore((s) => s.shuffle);
@@ -131,16 +135,18 @@ export function FullscreenLyrics() {
 
             <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-12 pb-8 pl-16 pr-10">
               <aside className="flex min-h-0 flex-col justify-center gap-4">
-                <WavyProgressRing
-                  src={track?.thumbnail}
-                  alt={track?.title ?? ''}
-                  size={320}
-                  thickness={11}
-                  playing={playing}
-                  className="drop-shadow-[0_30px_80px_rgba(0,0,0,0.75)]"
-                />
+                <div className={cn(shapedCoversNowPlaying && 'cloudy-cover-shape self-center')}>
+                  <WavyProgressRing
+                    src={track?.thumbnail}
+                    alt={track?.title ?? ''}
+                    size={320}
+                    thickness={11}
+                    playing={playing}
+                    className="drop-shadow-[0_30px_80px_rgba(0,0,0,0.75)]"
+                  />
+                </div>
 
-                <div className="flex items-start justify-between gap-4">
+                <div className={cn('flex items-start justify-between gap-4', titleAlign === 'center' && 'justify-center text-center')}>
                   <div className="min-w-0">
                     <h1 className="truncate text-[19px] font-semibold tracking-[-0.01em] text-white">
                       {track?.title ?? 'Nothing playing'}
@@ -167,7 +173,17 @@ export function FullscreenLyrics() {
 
                 <SeekBar onDark />
 
-                <div className="flex items-center justify-center gap-3 pt-1">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 pt-1',
+                    toolbarPosition.endsWith('left')
+                      ? 'justify-start'
+                      : toolbarPosition.endsWith('right')
+                        ? 'justify-end'
+                        : 'justify-center',
+                    toolbarPosition.startsWith('top') && 'order-first',
+                  )}
+                >
                   <button
                     onClick={toggleShuffle}
                     aria-label="Shuffle"

@@ -44,7 +44,6 @@ import { LOCALES } from '@/shared/config/locales';
 import { useT } from '@/shared/lib/i18n';
 import { useUpdatesStore } from '@/features/updates/store/updatesStore';
 import { cn } from '@/shared/lib/cn';
-import { SettingsPreview } from './SettingsPreview';
 
 /** English names, so typing "japanese" or "german" finds the native label. */
 const ENGLISH_NAMES = (() => {
@@ -502,7 +501,6 @@ export function SettingsDialog() {
 
               {tab === 'interface' ? (
                 <section>
-                  <SettingsPreview />
                   <h3 className="mb-3 text-[15px] font-semibold">Layout</h3>
                   <Row title="Search bar placement" description="Where the quick field sits in the title bar.">
                     <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
@@ -662,6 +660,166 @@ export function SettingsDialog() {
                       />
                       <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.panelBlur}px</span>
                     </div>
+                  </Row>
+                  <Row title="Top moment icon" description="The glyph on the badge over the cover on Home.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['heart', 'Heart'],
+                        ['honey', 'Honey'],
+                        ['star', 'Star'],
+                        ['fire', 'Fire'],
+                        ['cloud', 'Cloud'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setTopMomentIcon(value)}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-[12px] transition-colors',
+                            settings.topMomentIcon === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Logo beside Home greeting" description="Draw your chosen mark next to “Head in the clouds.”">
+                    <Toggle value={settings.showHomeLogo} onChange={settings.setShowHomeLogo} label="Logo beside Home greeting" />
+                  </Row>
+                  <Row title="Track card style" description="Default keeps the artist line under the title; Compact drops it for a tighter row.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['default', 'Default'],
+                        ['compact', 'Compact'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setTrackCardStyle(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.trackCardStyle === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Now Playing title alignment" description="Left or centred title on the Now Playing and karaoke screens.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['left', 'Left'],
+                        ['center', 'Center'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setNowPlayingTitleAlign(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.nowPlayingTitleAlign === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Now Playing toolbar position" description="Where the transport sits on the fullscreen Now Playing screen.">
+                    <select
+                      value={settings.nowPlayingToolbarPosition}
+                      onChange={(event) =>
+                        settings.setNowPlayingToolbarPosition(
+                          event.target.value as typeof settings.nowPlayingToolbarPosition,
+                        )
+                      }
+                      aria-label="Now Playing toolbar position"
+                      className="h-7 rounded-full border border-line bg-surface px-2.5 text-[12px] text-text outline-none"
+                    >
+                      {[
+                        ['top-center', 'Top center'],
+                        ['top-left', 'Top left'],
+                        ['top-right', 'Top right'],
+                        ['bottom-center', 'Bottom center'],
+                        ['bottom-left', 'Bottom left'],
+                        ['bottom-right', 'Bottom right'],
+                        ['left-center', 'Left side'],
+                        ['right-center', 'Right side'],
+                      ].map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </Row>
+                  <Row title="Visualizer in Now Playing" description="A spectrum under the track title in the lyrics panel.">
+                    <Toggle
+                      value={settings.showNowPlayingVisualizer}
+                      onChange={settings.setShowNowPlayingVisualizer}
+                      label="Visualizer in Now Playing"
+                    />
+                  </Row>
+                  <Row title="Visualizer style" description="Separate rounded bars, or one continuous wave.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['bars', 'Bars'],
+                        ['wave', 'Wave'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setVisualizerStyle(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.visualizerStyle === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Playbar visualizer position" description="Compact block beside the controls, or stretched behind the whole bar.">
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['compact', 'Compact'],
+                        ['behind', 'Behind bar'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setPlaybarVisualizerPosition(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.playbarVisualizerPosition === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row title="Interface opacity" description="How solid panels are; lower lets the backdrop show through.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={settings.interfaceOpacity}
+                        onChange={(event) => settings.setInterfaceOpacity(Number(event.target.value))}
+                        aria-label="Interface opacity"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.interfaceOpacity}%</span>
+                    </div>
+                  </Row>
+                  <Row title="Shaped cover in the player bar" description="Slow morphing squircle around the bar cover.">
+                    <Toggle value={settings.shapedCover} onChange={settings.setShapedCover} label="Shaped cover in the player bar" />
+                  </Row>
+                  <Row title="Shaped covers on Now Playing" description="Apply the same shape to the Now Playing and karaoke covers.">
+                    <Toggle
+                      value={settings.shapedCoversNowPlaying}
+                      onChange={settings.setShapedCoversNowPlaying}
+                      label="Shaped covers on Now Playing"
+                    />
                   </Row>
                   <Row title="Table columns" description="What a track row shows besides the cover, title and artist.">
                     <div className="flex flex-wrap justify-end gap-1.5">
@@ -843,8 +1001,32 @@ export function SettingsDialog() {
 
               {tab === 'appearance' ? (
                 <section>
-                  <SettingsPreview />
-                  <h3 className="mb-3 text-[15px] font-semibold">{t('language')}</h3>
+                  <h3 className="mb-3 text-[15px] font-semibold">Theme mode</h3>
+                  <Row
+                    title="Light or dark"
+                    description="Keep your palette but follow light or dark, or leave Auto so the theme decides."
+                  >
+                    <div className="flex gap-1 rounded-full border border-line bg-surface p-0.5">
+                      {([
+                        ['auto', 'Auto'],
+                        ['dark', 'Dark'],
+                        ['light', 'Light'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => settings.setThemeMode(value)}
+                          className={cn(
+                            'rounded-full px-3 py-1 text-[12px] transition-colors',
+                            settings.themeMode === value ? 'bg-accent text-black' : 'text-muted hover:text-text',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </Row>
+
+                  <h3 className="mb-3 mt-7 text-[15px] font-semibold">{t('language')}</h3>
                   <div className="relative mb-2.5">
                     <Search size={13} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
                     <input
@@ -1261,6 +1443,50 @@ export function SettingsDialog() {
                         className="cloudy-range w-40 cursor-pointer"
                       />
                       <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.bannerFade}%</span>
+                    </div>
+                  </Row>
+                  <Row title="Now Playing cover banner" description="Artwork backdrop behind the lyrics panel for the current track.">
+                    <Toggle
+                      value={settings.nowPlayingBanner}
+                      onChange={settings.setNowPlayingBanner}
+                      label="Now Playing cover banner"
+                    />
+                  </Row>
+                  <Row title="Playlist banners" description="Artwork backdrop at the top of each playlist page.">
+                    <Toggle
+                      value={settings.playlistBanners}
+                      onChange={settings.setPlaylistBanners}
+                      label="Playlist banners"
+                    />
+                  </Row>
+                  <Row title="Banner blur" description="Blur applied to the cover banner, separate from your own background picture.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={12}
+                        step={1}
+                        value={settings.bannerBlur}
+                        onChange={(event) => settings.setBannerBlur(Number(event.target.value))}
+                        aria-label="Banner blur"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.bannerBlur}px</span>
+                    </div>
+                  </Row>
+                  <Row title="Banner opacity" description="Opacity of the cover banner.">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={settings.bannerOpacity}
+                        onChange={(event) => settings.setBannerOpacity(Number(event.target.value))}
+                        aria-label="Banner opacity"
+                        className="cloudy-range w-40 cursor-pointer"
+                      />
+                      <span className="w-10 text-right text-[11px] tabular-nums text-muted">{settings.bannerOpacity}%</span>
                     </div>
                   </Row>
                   <p className="mt-3 text-[11.5px] leading-relaxed text-muted">
@@ -1838,11 +2064,18 @@ export function SettingsDialog() {
                           bridge().favorites.all(),
                           bridge().library.all(),
                         ]);
+                        const withTracks = await Promise.all(
+                          allPlaylists.map(async (list) => ({
+                            name: list.name,
+                            description: list.description,
+                            tracks: await bridge().playlists.tracks(list.id),
+                          })),
+                        );
                         downloadJson(`cloudy-account-${new Date().toISOString().slice(0, 10)}.json`, {
                           app: 'Cloudy',
                           exportedAt: new Date().toISOString(),
                           settings: stored,
-                          playlists: allPlaylists,
+                          playlists: withTracks,
                           favorites: favoriteTracks,
                           library: libraryTracks,
                         });
@@ -1850,6 +2083,47 @@ export function SettingsDialog() {
                     >
                       <Copy size={13} /> Export
                     </Button>
+                  </Row>
+                  <Row
+                    title="Import account backup"
+                    description="Restore settings, playlists and favourites from a Cloudy export. Existing items are kept."
+                  >
+                    <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[12.5px] text-text/80 transition-colors hover:bg-surface">
+                      <Upload size={13} /> Import
+                      <input
+                        type="file"
+                        accept="application/json,.json"
+                        className="hidden"
+                        onChange={async (event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const data = JSON.parse(await file.text()) as {
+                              settings?: Record<string, unknown>;
+                              playlists?: { name: string; description?: string | null; tracks?: Track[] }[];
+                              favorites?: Track[];
+                            };
+                            for (const [key, value] of Object.entries(data.settings ?? {})) {
+                              await bridge().settings.set(key, value);
+                            }
+                            const existing = await bridge().playlists.all();
+                            for (const list of data.playlists ?? []) {
+                              let target = existing.find((item) => item.name === list.name);
+                              if (!target) target = await bridge().playlists.create(list.name, list.description ?? undefined);
+                              for (const track of list.tracks ?? []) {
+                                await bridge().playlists.addTrack(target.id, track);
+                              }
+                            }
+                            for (const track of data.favorites ?? []) {
+                              await bridge().favorites.add(track);
+                            }
+                            window.location.reload();
+                          } catch {
+                            window.alert('That file is not a Cloudy account backup.');
+                          }
+                        }}
+                      />
+                    </label>
                   </Row>
                   <Row title="Library" description="Saved tracks and playlists live in a local SQLite database.">
                     <span className="text-[12.5px] text-muted">

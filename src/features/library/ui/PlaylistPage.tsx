@@ -10,6 +10,7 @@ import { EmptyState, TrackListSkeleton } from '@/shared/ui/Misc';
 import { RowMenu } from '@/shared/ui/ContextMenu';
 import { TrackRow } from '@/shared/ui/TrackRow';
 import { usePlayerStore } from '@/features/player/store/playerStore';
+import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { useTrackMenu } from '@/features/library/hooks/useTrackMenu';
 import { useUiStore } from '@/features/navigation/store/uiStore';
 import { formatTotal } from '@/shared/lib/format';
@@ -22,6 +23,7 @@ export function PlaylistPage() {
   const [description, setDescription] = useState('');
   const [tracks, setTracks] = useState<Track[]>([]);
   const [cover, setCover] = useState<string | null>(null);
+  const playlistBanners = useSettingsStore((s) => s.playlistBanners);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -119,8 +121,17 @@ export function PlaylistPage() {
   }
 
   return (
-    <div className="px-8 pb-12 pt-2">
-      <header className="flex items-end gap-6">
+    <div className="relative px-8 pb-12 pt-2">
+      {playlistBanners && cover ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden">
+          <div
+            className="h-full w-full bg-cover bg-center opacity-25 blur-2xl"
+            style={{ backgroundImage: `url(${cover})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[color:var(--bg)]" />
+        </div>
+      ) : null}
+      <header className="relative flex items-end gap-6">
         {cover ? (
           <AlbumArt src={cover} alt={name} size={180} rounded="lg" className="shadow-[var(--shadow)]" />
         ) : (

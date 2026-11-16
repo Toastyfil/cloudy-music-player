@@ -1,4 +1,4 @@
-import { Play, Search } from 'lucide-react';
+import { Cloud, Flame, Heart, Hexagon, Play, Search, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { LibraryPlaylist, LibraryTrack } from '@/shared/api/contracts';
@@ -13,6 +13,15 @@ import { RowMenu } from '@/shared/ui/ContextMenu';
 import { useTrackMenu } from '@/features/library/hooks/useTrackMenu';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { trackRowSurface } from '@/shared/ui/trackRowStyle';
+import { LogoGlyph } from '@/shared/ui/Logo';
+
+const MOMENT_ICONS = {
+  heart: Heart,
+  honey: Hexagon,
+  star: Star,
+  fire: Flame,
+  cloud: Cloud,
+} as const;
 
 interface AlbumGroup {
   key: string;
@@ -28,6 +37,10 @@ export function HomePage() {
   const [playlists, setPlaylists] = useState<LibraryPlaylist[]>([]);
   const [loaded, setLoaded] = useState(false);
   const classicCards = useSettingsStore((s) => s.classicCards);
+  const topMomentIcon = useSettingsStore((s) => s.topMomentIcon);
+  const showHomeLogo = useSettingsStore((s) => s.showHomeLogo);
+  const logoVariant = useSettingsStore((s) => s.logoVariant);
+  const MomentIcon = MOMENT_ICONS[topMomentIcon] ?? MOMENT_ICONS.heart;
   const queue = usePlayerStore((s) => s.queue);
   const index = usePlayerStore((s) => s.index);
   const playTracks = usePlayerStore((s) => s.playTracks);
@@ -80,7 +93,10 @@ export function HomePage() {
   return (
     <div className="px-8 pb-12 pt-3">
       <header className="mb-8">
-        <h1 className="text-[30px] font-bold tracking-[-0.03em]">Head in the clouds.</h1>
+        <div className="flex items-center gap-3">
+          {showHomeLogo ? <LogoGlyph variant={logoVariant} size={30} className="text-accent" /> : null}
+          <h1 className="text-[30px] font-bold tracking-[-0.03em]">Head in the clouds.</h1>
+        </div>
         <p className="mt-1 text-[13px] text-muted">Your music, your library, your light.</p>
       </header>
 
@@ -127,7 +143,8 @@ export function HomePage() {
                         <span className="absolute inset-0 bg-black/35" />
                       ) : null}
                       {current?.id === track.id ? (
-                        <span className="absolute bottom-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-black">
+                        <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-black">
+                          <MomentIcon size={9} className="fill-current" />
                           {playing ? 'Playing' : 'Paused'}
                         </span>
                       ) : null}

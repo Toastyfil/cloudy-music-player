@@ -66,6 +66,7 @@ export function TrackRow({
   const showDurationColumn = useSettingsStore((s) => s.showDurationColumn);
   const showAlbumColumn = useSettingsStore((s) => s.showAlbumColumn);
   const showFavoriteColumn = useSettingsStore((s) => s.showFavoriteColumn);
+  const compact = useSettingsStore((s) => s.trackCardStyle) === 'compact';
 
   return (
     <div
@@ -87,7 +88,13 @@ export function TrackRow({
         <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
           {showArt ? (
             <>
-              <AlbumArt src={track.thumbnail} alt={track.title} size={40} rounded="md" className={cn(hovered && 'opacity-25')} />
+              <AlbumArt
+              src={track.thumbnail}
+              alt={track.title}
+              size={compact ? 32 : 40}
+              rounded="md"
+              className={cn(hovered && 'opacity-25')}
+            />
               {(hovered || active) && (
                 <span className="absolute inset-0 flex items-center justify-center">
                   {active && playing ? (
@@ -127,7 +134,10 @@ export function TrackRow({
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted">
+        <span
+          className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-muted"
+          style={compact ? { display: 'none' } : undefined}
+        >
           <span className="truncate">{subtitleOverride ?? track.artist}</span>
           {showAlbum && showAlbumColumn && track.album?.name ? (
             <span className="truncate text-faint">· {track.album.name}</span>

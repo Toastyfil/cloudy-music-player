@@ -25,6 +25,7 @@ export const Visualizer = memo(function Visualizer({
   const performanceMode = useSettingsStore((state) => state.performanceMode);
   const sensitivity = useSettingsStore((state) => state.visualizerSensitivity);
   const smoothness = useSettingsStore((state) => state.visualizerSmoothness);
+  const style = useSettingsStore((state) => state.visualizerStyle);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -71,19 +72,42 @@ export const Visualizer = memo(function Visualizer({
         const raw = bands[Math.min(bands.length - 1, source)] ?? 0;
         const target = playingRef.current ? Math.min(1, raw * sensitivity) : 0;
         levels[index] = target > levels[index] ? target : levels[index] * decay;
-        const barHeight = Math.max(2, levels[index] * height);
-        const x = index * (barWidth + gap);
-        context.globalAlpha = playingRef.current ? 0.45 + levels[index] * 0.55 : 0.2;
+      }
+      if (style === 'wave') {
+        // One stroke through the band levels instead of separate bars.
+        context.globalAlpha = playingRef.current ? 0.85 : 0.3;
+        context.lineWidth = 2;
+        context.lineJoin = 'round';
+        context.lineCap = 'round';
         context.beginPath();
-        context.roundRect(x, height - barHeight, barWidth, barHeight, barWidth / 2);
-        context.fill();
+        for (let index = 0; index < bars; index++) {
+          const x = index * (barWidth + gap) + barWidth / 2;
+          const y = height - Math.max(2, levels[index] * height);
+          if (index === 0) context.moveTo(x, y);
+          else {
+            const prevX = (index - 1) * (barWidth + gap) + barWidth / 2;
+            const midX = (prevX + x) / 2;
+            context.quadraticCurveTo(prevX, height - Math.max(2, levels[index - 1] * height), midX, y);
+          }
+        }
+        context.strokeStyle = accent;
+        context.stroke();
+      } else {
+        for (let index = 0; index < bars; index++) {
+          const barHeight = Math.max(2, levels[index] * height);
+          const x = index * (barWidth + gap);
+          context.globalAlpha = playingRef.current ? 0.45 + levels[index] * 0.55 : 0.2;
+          context.beginPath();
+          context.roundRect(x, height - barHeight, barWidth, barHeight, barWidth / 2);
+          context.fill();
+        }
       }
       context.globalAlpha = 1;
     };
 
     frame = requestAnimationFrame(paint);
     return () => cancelAnimationFrame(frame);
-  }, [bars, performanceMode, sensitivity, smoothness]);
+  }, [bars, performanceMode, sensitivity, smoothness, style]);
 
   return (
     <canvas

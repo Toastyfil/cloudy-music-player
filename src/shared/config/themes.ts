@@ -104,6 +104,36 @@ export const THEMES: Theme[] = [
 
 export const DEFAULT_THEME_ID = 'graphite';
 
+function hueOf(hex: string): number {
+  const value = hex.replace('#', '');
+  if (value.length !== 6) return 0;
+  const r = parseInt(value.slice(0, 2), 16) / 255;
+  const g = parseInt(value.slice(2, 4), 16) / 255;
+  const b = parseInt(value.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  if (!delta) return 0;
+  const hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return ((hue * 60) % 360 + 360) % 360;
+}
+
+/**
+ * Theme mode (Settings → Appearance): keep the palette but pick its nearest
+ * twin in the requested lightness, so light/dark never resets the accent.
+ */
+export function themeForMode(theme: Theme, mode: 'auto' | 'dark' | 'light'): Theme {
+  if (mode === 'auto' || theme.mode === mode) return theme;
+  const candidates = THEMES.filter((entry) => entry.mode === mode);
+  if (!candidates.length) return theme;
+  const target = hueOf(theme.accent);
+  return candidates.reduce((best, entry) => {
+    const distance = Math.abs(hueOf(entry.accent) - target);
+    const bestDistance = Math.abs(hueOf(best.accent) - target);
+    return distance < bestDistance ? entry : best;
+  }, candidates[0]);
+}
+
 export function findTheme(id: string | null | undefined): Theme {
   return THEMES.find((theme) => theme.id === id) ?? THEMES.find((theme) => theme.id === DEFAULT_THEME_ID) ?? THEMES[0];
 }

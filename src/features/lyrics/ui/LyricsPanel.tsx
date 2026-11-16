@@ -11,6 +11,7 @@ import { findActiveLine, type LyricLine } from '../lib/lrc';
 import { IconButton } from '@/shared/ui/Button';
 import { AlbumArt } from '@/shared/ui/AlbumArt';
 import { CloudyMark } from '@/shared/ui/Logo';
+import { Visualizer } from '@/shared/ui/Visualizer';
 import { useT } from '@/shared/lib/i18n';
 
 /** Instrumental markers have no words; keep the last sung line highlighted. */
@@ -498,6 +499,10 @@ export function LyricsBody({ fullscreen = false, onDark = false }: { fullscreen?
 export function LyricsPanel({ onClose, onFullscreen }: { onClose: () => void; onFullscreen: () => void }) {
   const t = useT();
   const track = usePlayerStore(selectCurrentTrack);
+  const playing = usePlayerStore((s) => s.playing);
+  const nowPlayingBanner = useSettingsStore((s) => s.nowPlayingBanner);
+  const titleAlign = useSettingsStore((s) => s.nowPlayingTitleAlign);
+  const showNowPlayingVisualizer = useSettingsStore((s) => s.showNowPlayingVisualizer);
   const status = useLyricsStore((s) => s.status);
   // A nudge belongs to this song, not to every song: a live cut can be half a
   // second off while the studio version is perfect.
@@ -541,8 +546,17 @@ export function LyricsPanel({ onClose, onFullscreen }: { onClose: () => void; on
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="relative z-20 flex w-[350px] shrink-0 flex-col border-l border-line bg-[color:var(--bg)]/85 backdrop-blur-xl"
     >
-      <header className="px-4 pb-1 pt-4">
-        <div className="flex items-center gap-2.5">
+      {nowPlayingBanner && track?.thumbnail ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-56 overflow-hidden">
+          <div
+            className="h-full w-full bg-cover bg-center opacity-30 blur-2xl"
+            style={{ backgroundImage: `url(${track.thumbnail})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[color:var(--bg)]" />
+        </div>
+      ) : null}
+      <header className={cn('relative px-4 pb-1 pt-4', titleAlign === 'center' && 'text-center')}>
+        <div className={cn('flex items-center gap-2.5', titleAlign === 'center' && 'justify-center')}>
           <AlbumArt src={track?.thumbnail} alt={track?.title ?? ''} size={40} rounded="md" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-medium">{track?.title ?? 'Nothing playing'}</p>
@@ -557,6 +571,11 @@ export function LyricsPanel({ onClose, onFullscreen }: { onClose: () => void; on
             </IconButton>
           </div>
         </div>
+        {showNowPlayingVisualizer ? (
+          <div className="mt-3 flex justify-center">
+            <Visualizer playing={playing} bars={26} className="h-8 w-full max-w-[240px]" />
+          </div>
+        ) : null}
         <div className="mt-3 flex items-center justify-between border-b border-line pb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-faint">{t('lyrics')}</h3>
