@@ -389,6 +389,7 @@ function registerIpc() {
   ipcMain.handle('playlists:remove', (_e, id) => playlists.remove(id));
   ipcMain.handle('playlists:addTrack', (_e, id, track) => playlists.addTrack(id, track));
   ipcMain.handle('playlists:removeTrack', (_e, id, trackId) => playlists.removeTrack(id, trackId));
+  ipcMain.handle('playlists:moveTrack', (_e, id, trackId, toIndex) => playlists.moveTrack(id, trackId, toIndex));
   ipcMain.handle('playlists:tracks', (_e, id) => playlists.tracks(id));
   ipcMain.handle('playlists:cover', (_e, id) => playlists.cover(id));
 

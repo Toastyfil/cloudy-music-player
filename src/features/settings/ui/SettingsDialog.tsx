@@ -32,6 +32,7 @@ import {
   DSP_PRESETS,
   EQ_PRESETS,
   SHORTCUT_LABELS,
+  SIDEBAR_ORDER_DEFAULT,
   bandLabel,
   useSettingsStore,
   type ShortcutAction,
@@ -521,6 +522,18 @@ export function SettingsDialog() {
                         </button>
                       ))}
                     </div>
+                  </Row>
+                  <Row
+                    title="Sidebar order"
+                    description="Drag any rail icon, including a playlist shortcut, to move it. The order is stored with your settings."
+                  >
+                    <Button
+                      variant="subtle"
+                      onClick={() => settings.setSidebarOrder([...SIDEBAR_ORDER_DEFAULT])}
+                      disabled={settings.sidebarOrder.join('|') === SIDEBAR_ORDER_DEFAULT.join('|')}
+                    >
+                      <RotateCcw size={13} /> Reset order
+                    </Button>
                   </Row>
                   <Row title="Home button beside search" description="A small house that jumps to Home from any page.">
                     <Toggle

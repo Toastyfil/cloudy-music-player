@@ -65,6 +65,7 @@ export interface Bridge {
     remove(id: string): Promise<void>;
     addTrack(id: string, track: Track): Promise<void>;
     removeTrack(id: string, trackId: string): Promise<void>;
+    moveTrack(id: string, trackId: string, toIndex: number): Promise<void>;
     tracks(id: string): Promise<Track[]>;
     cover(id: string): Promise<string | null>;
   };
@@ -346,6 +347,15 @@ const browserBridge: Bridge = {
         'playlists',
         read<LibraryPlaylist[]>('playlists', []).map((p) => (p.id === id ? { ...p, trackCount: tracks.length } : p)),
       );
+    },
+    moveTrack: async (id: string, trackId: string, toIndex: number) => {
+      const key = `playlist:${id}`;
+      const tracks = read<Track[]>(key, []);
+      const from = tracks.findIndex((track) => track.id === trackId);
+      if (from < 0) return;
+      const [moved] = tracks.splice(from, 1);
+      tracks.splice(Math.max(0, Math.min(tracks.length, toIndex)), 0, moved);
+      write(key, tracks);
     },
     tracks: async (id: string) => read<Track[]>(`playlist:${id}`, []) as LibraryTrack[],
     cover: async (id: string) => read<Track[]>(`playlist:${id}`, []).find((t) => t.thumbnail)?.thumbnail ?? null,

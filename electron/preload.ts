@@ -49,6 +49,8 @@ const api = {
     remove: (id: string) => ipcRenderer.invoke('playlists:remove', id),
     addTrack: (id: string, track: unknown) => ipcRenderer.invoke('playlists:addTrack', id, track),
     removeTrack: (id: string, trackId: string) => ipcRenderer.invoke('playlists:removeTrack', id, trackId),
+    moveTrack: (id: string, trackId: string, toIndex: number) =>
+      ipcRenderer.invoke('playlists:moveTrack', id, trackId, toIndex),
     tracks: (id: string) => ipcRenderer.invoke('playlists:tracks', id),
     cover: (id: string) => ipcRenderer.invoke('playlists:cover', id),
   },

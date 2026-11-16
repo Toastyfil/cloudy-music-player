@@ -10,6 +10,8 @@ import { EmptyState, TrackListSkeleton } from '@/shared/ui/Misc';
 import { RowMenu } from '@/shared/ui/ContextMenu';
 import { TrackRow } from '@/shared/ui/TrackRow';
 import { usePlayerStore } from '@/features/player/store/playerStore';
+import { useDragOrder } from '@/shared/lib/useDragOrder';
+import { cn } from '@/shared/lib/cn';
 import { useSettingsStore } from '@/features/settings/store/settingsStore';
 import { useTrackMenu } from '@/features/library/hooks/useTrackMenu';
 import { useUiStore } from '@/features/navigation/store/uiStore';
@@ -67,6 +69,24 @@ export function PlaylistPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Rows are dragged into a new order; the local list follows immediately and
+  // the playlist's stored positions are rewritten on drop.
+  const commitOrder = useCallback(
+    (next: string[], movedId: string | null) => {
+      if (!isLocal || !movedId) return;
+      const index = next.indexOf(movedId);
+      if (index < 0) return;
+      const byId = new Map(tracks.map((track) => [track.id, track]));
+      setTracks(next.map((trackId) => byId.get(trackId)).filter((track): track is Track => Boolean(track)));
+      void bridge().playlists.moveTrack(id, movedId, index);
+    },
+    [id, isLocal, tracks],
+  );
+  const { order, dragging, bind } = useDragOrder(
+    tracks.map((track) => track.id),
+    commitOrder,
+  );
 
   const total = tracks.reduce((sum, track) => sum + (track.duration || 0), 0);
 
@@ -198,19 +218,31 @@ export function PlaylistPage() {
           />
         ) : (
           <div className="space-y-0.5">
-            {tracks.map((track) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                active={current?.id === track.id}
-                playing={playing || shuffle}
-                onPlay={() => {
-                  const index = tracks.findIndex((t) => t.id === track.id);
-                  void playTracks(tracks, Math.max(0, index));
-                }}
-                right={<RowMenu items={menuFor(track, isLocal ? { inLibrary: true } : undefined)} />}
-              />
-            ))}
+            {order.map((trackId) => {
+              const track = tracks.find((entry) => entry.id === trackId);
+              if (!track) return null;
+              return (
+                <div
+                  key={trackId}
+                  {...(isLocal ? bind(trackId) : {})}
+                  className={cn(
+                    'cursor-grab rounded-lg transition-opacity active:cursor-grabbing',
+                    dragging === trackId && 'opacity-50',
+                  )}
+                >
+                  <TrackRow
+                    track={track}
+                    active={current?.id === track.id}
+                    playing={playing || shuffle}
+                    onPlay={() => {
+                      const index = tracks.findIndex((t) => t.id === track.id);
+                      void playTracks(tracks, Math.max(0, index));
+                    }}
+                    right={<RowMenu items={menuFor(track, isLocal ? { inLibrary: true } : undefined)} />}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

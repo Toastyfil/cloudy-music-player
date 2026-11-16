@@ -20,6 +20,9 @@ import {
 
 const DSP_DEFAULTS: DspSettings = { ...DEFAULT_DSP };
 
+/** The rail's default order: the five pages, in the order Riff keeps them. */
+export const SIDEBAR_ORDER_DEFAULT = ['home', 'search', 'favorites', 'library', 'playlists'] as const;
+
 export const DSP_PRESETS: { id: string; label: string; dsp: DspSettings }[] = [
   { id: 'clean', label: 'Clean', dsp: { ...DSP_DEFAULTS } },
   {
@@ -263,6 +266,8 @@ interface SettingsState {
   playbarVisualizerOpacity: number;
   /** Blur behind floating panels (lyrics, queue), 0 – 48. */
   panelBlur: number;
+  /** Dragged order of the sidebar rail: nav keys and `pl:<id>` shortcuts. */
+  sidebarOrder: string[];
   /** Fill the main button of each screen with the accent. */
   highlightButtons: boolean;
   /** 0 – 100, how far the accent bleeds into neutral surfaces. */
@@ -394,6 +399,7 @@ interface SettingsState {
   setShowPlaybarVisualizer: (on: boolean) => void;
   setPlaybarVisualizerOpacity: (value: number) => void;
   setPanelBlur: (value: number) => void;
+  setSidebarOrder: (order: string[]) => void;
   setHighlightButtons: (on: boolean) => void;
   setAccentIntensity: (value: number) => void;
   setTintBackground: (on: boolean) => void;
@@ -505,6 +511,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showPlaybarVisualizer: true,
   playbarVisualizerOpacity: 100,
   panelBlur: 10,
+  sidebarOrder: [...SIDEBAR_ORDER_DEFAULT],
   highlightButtons: true,
   accentIntensity: 0,
   tintBackground: false,
@@ -622,6 +629,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (typeof stored.playbarVisualizerOpacity === 'number')
         next.playbarVisualizerOpacity = Math.max(5, Math.min(100, Math.round(stored.playbarVisualizerOpacity)));
       if (typeof stored.panelBlur === 'number') next.panelBlur = Math.max(0, Math.min(48, Math.round(stored.panelBlur)));
+      if (Array.isArray(stored.sidebarOrder))
+        next.sidebarOrder = stored.sidebarOrder.filter((id): id is string => typeof id === 'string').slice(0, 400);
       if (typeof stored.highlightButtons === 'boolean') next.highlightButtons = stored.highlightButtons;
       if (typeof stored.accentIntensity === 'number')
         next.accentIntensity = Math.max(0, Math.min(100, Math.round(stored.accentIntensity)));
@@ -1012,6 +1021,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       showPlaybarVisualizer: true,
       playbarVisualizerOpacity: 100,
       panelBlur: 10,
+      sidebarOrder: [...SIDEBAR_ORDER_DEFAULT],
       highlightButtons: true,
       accentIntensity: 0,
       tintBackground: false,
@@ -1123,6 +1133,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setSearchAlign(align) {
     set({ searchAlign: align });
     persistKey('searchAlign', align);
+  },
+
+  setSidebarOrder(order) {
+    const next = [...new Set(order.filter((id) => typeof id === 'string' && id.length > 0))];
+    set({ sidebarOrder: next });
+    persistKey('sidebarOrder', next);
   },
 
   setShowHomeButton(on) {

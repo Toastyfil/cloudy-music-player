@@ -428,6 +428,24 @@ export const playlists = {
     requireDb().prepare('DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?').run(playlistId, trackId);
   },
 
+  /** Drop a track at a new index and renumber every row around it. */
+  moveTrack(playlistId: string, trackId: string, toIndex: number) {
+    const database = requireDb();
+    const rows = database
+      .prepare('SELECT track_id FROM playlist_tracks WHERE playlist_id = ? ORDER BY position ASC')
+      .all(playlistId) as { track_id: string }[];
+    const ids = rows.map((row) => String(row.track_id));
+    const from = ids.indexOf(trackId);
+    if (from < 0) return;
+    ids.splice(from, 1);
+    ids.splice(Math.max(0, Math.min(ids.length, Math.round(toIndex))), 0, trackId);
+    const update = database.prepare('UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?');
+    database.transaction(() => {
+      ids.forEach((id, index) => update.run(index, playlistId, id));
+    })();
+    database.prepare('UPDATE playlists SET updated_at = ? WHERE id = ?').run(Date.now(), playlistId);
+  },
+
   tracks(playlistId: string): LibraryTrack[] {
     return requireDb()
       .prepare(
