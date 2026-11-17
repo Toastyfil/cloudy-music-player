@@ -38,9 +38,9 @@ publish).
    refuse to start on older distributions.
 
 5. A final **Publish release** job collects the artifacts and creates the
-   release with all five files attached and the notes described below. It waits
-   for every build job, so a failing Linux build blocks the release rather than
-   publishing an incomplete one.
+   release with every built file attached and the notes described below. It
+   waits for all four build jobs, so a failing Linux build blocks the release
+   rather than publishing an incomplete one.
 
 Builds stay available as workflow artifacts for 14 days even when the release
 job does not run.
