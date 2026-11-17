@@ -236,9 +236,9 @@ jobs:
           set -euo pipefail
           SERVER=$(find release -type f -path '*resources/app.asar.unpacked/server/index.js' | head -1)
           test -n "$SERVER" || { echo "The packaged app has no unpacked backend."; exit 1; }
-          UNPACKED=$(dirname "$(dirname "$SERVER")")
-          RESOURCES=$(dirname "$UNPACKED")
-          test -f "$UNPACKED/node_modules/express/package.json" || {
+          SERVER_DIR=$(dirname "$SERVER")
+          RESOURCES=$(dirname "$(dirname "$SERVER_DIR")")
+          test -f "$SERVER_DIR/node_modules/express/package.json" || {
             echo "The packaged backend is missing its node_modules (express).";
             exit 1;
           }
@@ -254,7 +254,10 @@ jobs:
           set -euo pipefail
           ls -lh release/*.AppImage release/*.deb
           dpkg-deb --info release/*.deb | sed -n '1,15p'
-          dpkg-deb --contents release/*.deb | grep -q 'bin/cloudy'
+          # Written to a file rather than piped: grep -q exits on the first hit,
+          # which under pipefail would fail the step on dpkg-deb's SIGPIPE.
+          dpkg-deb --contents release/*.deb > deb-contents.txt
+          grep -iE 'opt/[^ ]+/cloudy$|usr/bin/cloudy' deb-contents.txt
           APPIMAGE=$(ls release/*.AppImage | head -1)
           chmod +x "$APPIMAGE"
           # The AppImage runtime extracts without FUSE, so this proves it runs
