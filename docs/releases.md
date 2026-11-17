@@ -10,14 +10,18 @@ publish).
 1. Bump `version` in `package.json` — the installers are named from it, so
    `1.0.1` produces `Cloudy-1.0.1-setup.exe`, `Cloudy-1.0.1-arm64.dmg` and
    `Cloudy-1.0.1-x64.dmg`.
-2. Commit, then tag and push:
+2. Add the same version to `CHANGELOG.md` under a `## 1.0.1 — <date>` heading,
+   with **Added**, **Changed** and **Fixed** bullets: what a user would notice,
+   not which files were touched.
+3. Commit, then tag and push:
 
    ```sh
+   git commit -am "1.0.1"
    git tag v1.0.1
-   git push origin v1.0.1
+   git push origin main --tags
    ```
 
-3. The workflow runs three build jobs in parallel:
+4. The workflow runs three build jobs in parallel:
 
    | Job | Runner | Output |
    | --- | --- | --- |
@@ -28,11 +32,31 @@ publish).
    Each bundles the matching `yt-dlp` binary into `resources/bin`, so playback
    works without a separate install.
 
-4. A final **Publish release** job collects the artifacts and creates the
-   release with all three files attached, using GitHub's generated notes.
+5. A final **Publish release** job collects the artifacts and creates the
+   release with all three files attached and the notes described below.
 
 Builds stay available as workflow artifacts for 14 days even when the release
 job does not run.
+
+## Release notes
+
+Nobody writes the release page by hand. The publish job checks out the full
+history and builds a **What's new** section with
+`git log --no-merges --pretty='- %s' <previous tag>..<this tag>`, so every
+release lists what changed since the previous one, with a compare link.
+
+That makes the commit subject the line a user reads, so write it as a change:
+
+- `Add a mini player while Cloudy is minimized` — good, it is the bullet users see.
+- `wip`, `fix stuff`, merge commits — dropped or useless in the notes.
+
+Anything worth a paragraph (a new catalog, a redesign, a behaviour change) also
+goes into `CHANGELOG.md`, which the notes link to. The two together are the
+update story: the release page for the details of one version, the changelog for
+reading the history in order.
+
+Notes are attached after the intro paragraph and before **Downloads**, so the
+first thing on the page is what changed, then how to install.
 
 ## Signing secrets
 

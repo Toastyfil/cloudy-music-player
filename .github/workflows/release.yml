@@ -202,6 +202,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # The notes are built with git log, so the publish job needs the full
+          # history and the tags that came before this one.
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -209,6 +215,32 @@ jobs:
 
       - name: Show installers
         run: ls -lh dist
+
+      - name: Collect the changes since the last tag
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          PREV=$(git describe --tags --abbrev=0 "${VERSION}^" 2>/dev/null || true)
+          {
+            echo "## What's new"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Changes since ${PREV}:"
+              echo
+              git log --no-merges --pretty='- %s' "${PREV}..${VERSION}"
+              echo
+              echo "Full diff: https://github.com/${GITHUB_REPOSITORY}/compare/${PREV}...${VERSION}"
+            else
+              echo "First tagged release, so this is the history it ships:"
+              echo
+              git log --no-merges --pretty='- %s' --max-count=30 "${VERSION}"
+            fi
+            echo
+            echo "Each of these is written up in [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md)."
+          } > changes.md
+          echo "--- changes ---"
+          cat changes.md
 
       - name: Write release notes
         env:
@@ -219,7 +251,11 @@ jobs:
           VERSION="${VERSION#v}"
           (cd dist && sha256sum ./* | sed 's| \*\./|  |') > sums.txt
           cat > release.md <<EOF
-          Cloudy plays music from four catalogs in one window — YouTube Music, SoundCloud, Deezer and Apple Music — merged into a single search, with no account and no ads. Everything runs on your machine: one player, one queue, one lyrics view.
+          Cloudy plays music from five catalogs in one window — YouTube Music, SoundCloud, Deezer, Apple Music and Audius — merged into a single search, with no account and no ads. Everything runs on your machine: one player, one queue, one lyrics view.
+
+          EOF
+          cat changes.md >> release.md
+          cat >> release.md <<EOF
 
           ### Downloads
 
@@ -239,15 +275,6 @@ jobs:
           xattr -dr com.apple.quarantine /Applications/Cloudy.app
           \`\`\`
 
-          ### What's inside
-
-          - **One search, four catalogs.** Every row is labelled with its source and matched to the recording Cloudy plays, so an Apple Music or Deezer result is the track itself, not a link out.
-          - **Lyrics that follow the voice.** Syllable-timed karaoke sweep, readable spacing, dimmed backing vocals, and automatic per-track alignment from the audio itself — plus a manual offset and a per-line sync control.
-          - **Playback that respects the queue.** Gapless prefetch, fades instead of clicks, 10-band EQ, stereo pan, mono output, drive, delay, reverb, compression and loudness normalisation.
-          - **A real library.** Favourites for songs, artists and albums, your own playlists, playlist import from Spotify, Apple Music, YouTube, SoundCloud or Deezer, and play counts.
-          - **At home on both platforms.** Native window controls, a menu-bar or tray menu with transport controls, OS media keys, global shortcuts, Discord presence and \`cloudy://\` deep links.
-          - **21 palettes, 47 languages**, applied instantly.
-
           ### Checksums (SHA-256)
 
           \`\`\`
@@ -256,7 +283,7 @@ jobs:
           printf '```\n\n' >> release.md
           printf 'Requirements: Windows 10 or newer, or macOS 11 or newer. Internet is needed for the first play of a track; after that it is cached locally.\n\n' >> release.md
           printf 'Documentation, build instructions and the MIT license: https://github.com/%s\n\n' "$REPO" >> release.md
-          printf 'Full changelog: https://github.com/%s/commits/%s\n' "$REPO" "$GITHUB_REF_NAME" >> release.md
+          printf 'Release process: https://github.com/%s/blob/main/docs/releases.md\n' "$REPO" >> release.md
           echo '--- release notes ---'
           cat release.md
 
