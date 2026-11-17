@@ -312,8 +312,10 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          APPIMAGE=$(ls pkg/*.AppImage | head -1)
-          DEB=$(ls pkg/*.deb | head -1)
+          # apt takes a bare relative path for a package name, so hand it the
+          # absolute one.
+          APPIMAGE="$PWD/$(ls pkg/*.AppImage | head -1)"
+          DEB="$PWD/$(ls pkg/*.deb | head -1)"
           chmod +x "$APPIMAGE"
 
           cat > smoke.sh <<'SH'
