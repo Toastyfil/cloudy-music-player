@@ -9,7 +9,9 @@ publish).
 
 1. Bump `version` in `package.json` — the installers are named from it, so
    `1.0.1` produces `Cloudy-1.0.1-setup.exe`, `Cloudy-1.0.1-arm64.dmg`,
-   `Cloudy-1.0.1-x64.dmg`, `Cloudy-1.0.1-x64.AppImage` and `Cloudy-1.0.1-x64.deb`.
+   `Cloudy-1.0.1-x64.dmg`, `Cloudy-1.0.1-x86_64.AppImage` and `Cloudy-1.0.1-amd64.deb`.
+   The Linux files use electron-builder's Debian arch spellings (`x86_64`,
+   `amd64`), so quote those names exactly in the notes instead of `x64`.
 2. Add the same version to `CHANGELOG.md` under a `## 1.0.1 — <date>` heading,
    with **Added**, **Changed** and **Fixed** bullets: what a user would notice,
    not which files were touched.

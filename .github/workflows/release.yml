@@ -346,7 +346,7 @@ jobs:
           | Windows 10/11 (64-bit) | \`Cloudy-${VERSION}-setup.exe\` |
           | macOS 11+ (Apple Silicon) | \`Cloudy-${VERSION}-arm64.dmg\` |
           | macOS 11+ (Intel) | \`Cloudy-${VERSION}-x64.dmg\` |
-          | Linux 64-bit | \`Cloudy-${VERSION}-x64.AppImage\` or \`Cloudy-${VERSION}-x64.deb\` |
+          | Linux 64-bit | \`Cloudy-${VERSION}-x86_64.AppImage\` or \`Cloudy-${VERSION}-amd64.deb\` |
 
           ### Installing
 
@@ -361,17 +361,17 @@ jobs:
           **Linux** — the AppImage runs anywhere without installing; the deb fits Debian, Ubuntu, Mint, Pop!_OS and anything else that uses apt:
 
           \`\`\`sh
-          chmod +x Cloudy-${VERSION}-x64.AppImage
-          ./Cloudy-${VERSION}-x64.AppImage
+          chmod +x Cloudy-${VERSION}-x86_64.AppImage
+          ./Cloudy-${VERSION}-x86_64.AppImage
 
           # or, as a system package with a menu entry:
-          sudo apt install ./Cloudy-${VERSION}-x64.deb
+          sudo apt install ./Cloudy-${VERSION}-amd64.deb
           \`\`\`
 
           The AppImage needs FUSE 2 (\`libfuse2\` on Ubuntu 22.04 and newer, \`fuse2\` on Arch and Fedora). If it is not installed, extract and run it instead:
 
           \`\`\`sh
-          ./Cloudy-${VERSION}-x64.AppImage --appimage-extract-and-run
+          ./Cloudy-${VERSION}-x86_64.AppImage --appimage-extract-and-run
           \`\`\`
 
           ### Checksums (SHA-256)

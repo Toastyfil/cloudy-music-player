@@ -86,14 +86,14 @@ Everything is on the [Releases page](https://github.com/Toastyfil/cloudy-music-p
 
 **macOS** — `Cloudy-<version>-arm64.dmg` for Apple Silicon, `Cloudy-<version>-x64.dmg` for Intel. Open the DMG and drag Cloudy into Applications.
 
-**Linux** — `Cloudy-<version>-x64.AppImage` is a single file you can run from anywhere; `Cloudy-<version>-x64.deb` installs it with a menu entry and uninstalls cleanly through `apt`.
+**Linux** — `Cloudy-<version>-x86_64.AppImage` is a single file you can run from anywhere; `Cloudy-<version>-amd64.deb` installs it with a menu entry and uninstalls cleanly through `apt`.
 
 ```sh
-chmod +x Cloudy-<version>-x64.AppImage
-./Cloudy-<version>-x64.AppImage
+chmod +x Cloudy-<version>-x86_64.AppImage
+./Cloudy-<version>-x86_64.AppImage
 
 # or, as a system package:
-sudo apt install ./Cloudy-<version>-x64.deb
+sudo apt install ./Cloudy-<version>-amd64.deb
 ```
 
 The AppImage needs FUSE 2 (`libfuse2` on Ubuntu 22.04 and newer, `fuse2` on Arch and Fedora); without it, run it with `--appimage-extract-and-run`. Both builds target 64-bit Ubuntu 22.04 and newer (glibc 2.35+), Debian 12, and their derivatives.
