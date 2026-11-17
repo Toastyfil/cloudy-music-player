@@ -8,8 +8,8 @@ publish).
 ## Cutting a release
 
 1. Bump `version` in `package.json` — the installers are named from it, so
-   `1.0.1` produces `Cloudy-1.0.1-setup.exe`, `Cloudy-1.0.1-arm64.dmg` and
-   `Cloudy-1.0.1-x64.dmg`.
+   `1.0.1` produces `Cloudy-1.0.1-setup.exe`, `Cloudy-1.0.1-arm64.dmg`,
+   `Cloudy-1.0.1-x64.dmg`, `Cloudy-1.0.1-x64.AppImage` and `Cloudy-1.0.1-x64.deb`.
 2. Add the same version to `CHANGELOG.md` under a `## 1.0.1 — <date>` heading,
    with **Added**, **Changed** and **Fixed** bullets: what a user would notice,
    not which files were touched.
@@ -21,19 +21,24 @@ publish).
    git push origin main --tags
    ```
 
-4. The workflow runs three build jobs in parallel:
+4. The workflow runs four build jobs in parallel:
 
    | Job | Runner | Output |
    | --- | --- | --- |
    | Windows installer | `windows-latest` | NSIS `.exe` |
    | macOS DMG (arm64) | `macos-15` | Apple Silicon `.dmg` |
    | macOS DMG (x64) | `macos-15-intel` | Intel `.dmg` |
+   | Linux AppImage and deb | `ubuntu-22.04` | `.AppImage` and `.deb` |
 
    Each bundles the matching `yt-dlp` binary into `resources/bin`, so playback
-   works without a separate install.
+   works without a separate install. The Linux job deliberately builds on 22.04:
+   a newer runner would link the AppImage against a newer glibc and it would
+   refuse to start on older distributions.
 
 5. A final **Publish release** job collects the artifacts and creates the
-   release with all three files attached and the notes described below.
+   release with all five files attached and the notes described below. It waits
+   for every build job, so a failing Linux build blocks the release rather than
+   publishing an incomplete one.
 
 Builds stay available as workflow artifacts for 14 days even when the release
 job does not run.

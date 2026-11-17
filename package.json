@@ -3,7 +3,10 @@
   "productName": "Cloudy",
   "version": "1.3.0",
   "description": "Cloudy — a desktop music player. Head in the clouds.",
-  "author": "Cloudy",
+  "author": {
+    "name": "Cloudy",
+    "email": "157620087+Toastyfil@users.noreply.github.com"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -105,7 +108,15 @@
         "deb"
       ],
       "category": "Audio",
-      "icon": "build/icons"
+      "icon": "build/icons",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "desktop": {
+        "entry": {
+          "Name": "Cloudy",
+          "Comment": "A desktop music player",
+          "Categories": "Audio;AudioVideo;Player;"
+        }
+      }
     },
     "mac": {
       "category": "public.app-category.music",

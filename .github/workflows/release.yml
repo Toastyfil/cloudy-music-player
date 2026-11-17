@@ -193,11 +193,89 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  linux:
+    name: Linux AppImage and deb
+    # 22.04 on purpose: the AppImage links against the glibc of the machine that
+    # built it, and ubuntu-24.04 would produce one that refuses to start on
+    # anything older than Ubuntu 24.04.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci --prefix server
+
+      - name: Bundle yt-dlp
+        run: |
+          mkdir -p bin
+          curl -L --fail --silent --show-error \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+            -o bin/yt-dlp
+          chmod +x bin/yt-dlp
+          ./bin/yt-dlp --version
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package AppImage and deb
+        env:
+          # No Linux signing certificate to discover; keep the build quiet.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --linux --publish never
+
+      - name: Verify bundled backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVER=$(find release -maxdepth 4 -type d -path '*app.asar.unpacked/server' | head -1)
+          test -n "$SERVER" || { echo "The packaged app has no unpacked backend."; exit 1; }
+          test -f "$SERVER/index.js" || { echo "The packaged app has no backend entrypoint."; exit 1; }
+          test -f "$SERVER/node_modules/express/package.json" || {
+            echo "The packaged backend is missing its node_modules (express).";
+            exit 1;
+          }
+          test -x "$(dirname "$SERVER")/bin/yt-dlp" || {
+            echo "The packaged app is missing its bundled yt-dlp.";
+            exit 1;
+          }
+          echo "backend and yt-dlp present"
+
+      - name: Verify installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -lh release/*.AppImage release/*.deb
+          dpkg-deb --info release/*.deb | sed -n '1,15p'
+          dpkg-deb --contents release/*.deb | grep -q 'bin/cloudy'
+          APPIMAGE=$(ls release/*.AppImage | head -1)
+          chmod +x "$APPIMAGE"
+          # The AppImage runtime extracts without FUSE, so this proves it runs
+          # even though the runner has no graphical session.
+          "$APPIMAGE" --appimage-extract > /dev/null
+          test -f squashfs-root/AppRun
+          rm -rf squashfs-root
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
     name: Publish release
     # Only a version tag publishes; a manual run just builds the installers.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [windows, macos]
+    needs: [windows, macos, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -264,6 +342,7 @@ jobs:
           | Windows 10/11 (64-bit) | \`Cloudy-${VERSION}-setup.exe\` |
           | macOS 11+ (Apple Silicon) | \`Cloudy-${VERSION}-arm64.dmg\` |
           | macOS 11+ (Intel) | \`Cloudy-${VERSION}-x64.dmg\` |
+          | Linux 64-bit | \`Cloudy-${VERSION}-x64.AppImage\` or \`Cloudy-${VERSION}-x64.deb\` |
 
           ### Installing
 
@@ -275,13 +354,29 @@ jobs:
           xattr -dr com.apple.quarantine /Applications/Cloudy.app
           \`\`\`
 
+          **Linux** — the AppImage runs anywhere without installing; the deb fits Debian, Ubuntu, Mint, Pop!_OS and anything else that uses apt:
+
+          \`\`\`sh
+          chmod +x Cloudy-${VERSION}-x64.AppImage
+          ./Cloudy-${VERSION}-x64.AppImage
+
+          # or, as a system package with a menu entry:
+          sudo apt install ./Cloudy-${VERSION}-x64.deb
+          \`\`\`
+
+          The AppImage needs FUSE 2 (\`libfuse2\` on Ubuntu 22.04 and newer, \`fuse2\` on Arch and Fedora). If it is not installed, extract and run it instead:
+
+          \`\`\`sh
+          ./Cloudy-${VERSION}-x64.AppImage --appimage-extract-and-run
+          \`\`\`
+
           ### Checksums (SHA-256)
 
           \`\`\`
           EOF
           sed 's|^|  |' sums.txt >> release.md
           printf '```\n\n' >> release.md
-          printf 'Requirements: Windows 10 or newer, or macOS 11 or newer. Internet is needed for the first play of a track; after that it is cached locally.\n\n' >> release.md
+          printf 'Requirements: Windows 10 or newer, macOS 11 or newer, or a 64-bit Linux desktop with glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer). Internet is needed for the first play of a track; after that it is cached locally.\n\n' >> release.md
           printf 'Documentation, build instructions and the MIT license: https://github.com/%s\n\n' "$REPO" >> release.md
           printf 'Release process: https://github.com/%s/blob/main/docs/releases.md\n' "$REPO" >> release.md
           echo '--- release notes ---'
