@@ -234,18 +234,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SERVER=$(find release -maxdepth 4 -type d -path '*app.asar.unpacked/server' | head -1)
+          SERVER=$(find release -type f -path '*resources/app.asar.unpacked/server/index.js' | head -1)
           test -n "$SERVER" || { echo "The packaged app has no unpacked backend."; exit 1; }
-          test -f "$SERVER/index.js" || { echo "The packaged app has no backend entrypoint."; exit 1; }
-          test -f "$SERVER/node_modules/express/package.json" || {
+          UNPACKED=$(dirname "$(dirname "$SERVER")")
+          RESOURCES=$(dirname "$UNPACKED")
+          test -f "$UNPACKED/node_modules/express/package.json" || {
             echo "The packaged backend is missing its node_modules (express).";
             exit 1;
           }
-          test -x "$(dirname "$SERVER")/bin/yt-dlp" || {
+          test -x "$RESOURCES/bin/yt-dlp" || {
             echo "The packaged app is missing its bundled yt-dlp.";
             exit 1;
           }
-          echo "backend and yt-dlp present"
+          echo "backend and yt-dlp present in $RESOURCES"
 
       - name: Verify installers
         shell: bash
