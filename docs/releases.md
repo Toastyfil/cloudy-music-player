@@ -31,16 +31,31 @@ publish).
    | macOS DMG (arm64) | `macos-15` | Apple Silicon `.dmg` |
    | macOS DMG (x64) | `macos-15-intel` | Intel `.dmg` |
    | Linux AppImage and deb | `ubuntu-22.04` | `.AppImage` and `.deb` |
+   | Linux launch test | `ubuntu-22.04`, `ubuntu-24.04` | logs and screenshots |
 
    Each bundles the matching `yt-dlp` binary into `resources/bin`, so playback
    works without a separate install. The Linux job deliberately builds on 22.04:
    a newer runner would link the AppImage against a newer glibc and it would
    refuse to start on older distributions.
 
+   The **Linux launch test** job takes the AppImage and deb the Linux job just
+   produced and actually starts them under a virtual display, on both ends of
+   the supported range: it mounts the AppImage through FUSE, answers
+   `http://127.0.0.1:3456/health`, waits for a window to appear, then installs
+   the deb with `apt`, launches it the same way and removes it again. It uploads
+   the logs and a screenshot of each launch. A package that unpacks but crashes
+   on start fails here, which is what a build-only check cannot see.
+
 5. A final **Publish release** job collects the artifacts and creates the
    release with every built file attached and the notes described below. It
    waits for all four build jobs, so a failing Linux build blocks the release
    rather than publishing an incomplete one.
+
+   It deliberately does **not** wait for the launch test: publishing never hangs
+   on a flaky virtual display, and a red launch test is reported on the run
+   instead of holding back installers that were built successfully. Treat it as
+   a signal to look at—the job's logs and screenshot show what started and what
+   did not.
 
 Builds stay available as workflow artifacts for 14 days even when the release
 job does not run.

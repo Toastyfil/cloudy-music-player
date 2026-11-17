@@ -275,6 +275,134 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  linux-smoke:
+    name: Linux launch test (${{ matrix.os }})
+    # Downloads the Linux files this run just built and starts them for real:
+    # the AppImage through FUSE, then the deb through apt. Publish does not list
+    # this job under `needs`, so a red result here is a warning, never a block.
+    needs: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      # 22.04 is the oldest supported release and 24.04 the newest, so the two
+      # ends of the range are both exercised on every release.
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-packages
+          path: pkg
+
+      - name: Install a virtual display and runtime libraries
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xdotool scrot lsof curl libnss3 libgbm1 libgtk-3-0
+          # libfuse2 and libasound2 were both renamed in 24.04; try the old
+          # spelling first and fall back to the new one.
+          sudo apt-get install -y --no-install-recommends libfuse2 \
+            || sudo apt-get install -y --no-install-recommends libfuse2t64
+          sudo apt-get install -y --no-install-recommends libasound2t64 \
+            || sudo apt-get install -y --no-install-recommends libasound2
+
+      - name: Launch both packages
+        shell: bash
+        run: |
+          set -uo pipefail
+          APPIMAGE=$(ls pkg/*.AppImage | head -1)
+          DEB=$(ls pkg/*.deb | head -1)
+          chmod +x "$APPIMAGE"
+
+          cat > smoke.sh <<'SH'
+          # Starts one package, waits for the bundled service to answer and for a
+          # window to appear, then shuts it down again.
+          set -uo pipefail
+          label=$1
+          shift
+
+          "$@" > "$label.log" 2>&1 &
+          pid=$!
+          ready=no
+          wins=0
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 2 http://127.0.0.1:3456/health > "$label.health.json" 2>/dev/null && [ -s "$label.health.json" ]; then
+              ready=yes
+              break
+            fi
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+          done
+          if [ "$ready" = yes ]; then
+            for i in $(seq 1 25); do
+              wins=$(xdotool search --onlyvisible --name Cloudy 2>/dev/null | wc -l)
+              [ "$wins" -gt 0 ] && break
+              sleep 1
+            done
+            scrot -o "$label.png" 2>/dev/null || true
+          fi
+          echo "== $label: backend=$ready windows=$wins"
+          echo "health: $(cat "$label.health.json" 2>/dev/null)"
+          echo "--- $label log ---"
+          tail -40 "$label.log" 2>/dev/null
+          kill "$pid" 2>/dev/null || true
+          for i in $(seq 1 30); do
+            curl -fsS --max-time 1 http://127.0.0.1:3456/health > /dev/null 2>&1 || break
+            sleep 1
+          done
+          lsof -ti tcp:3456 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
+          sleep 1
+          [ "$ready" = yes ] && [ "$wins" -gt 0 ]
+          SH
+
+          status=0
+
+          echo '::group::AppImage'
+          if ! xvfb-run -a --server-args='-screen 0 1400x900x24' bash smoke.sh appimage \
+               "$APPIMAGE" --no-sandbox --disable-gpu; then
+            echo 'FUSE launch failed; retrying with --appimage-extract-and-run'
+            xvfb-run -a --server-args='-screen 0 1400x900x24' bash smoke.sh appimage-extracted \
+              "$APPIMAGE" --appimage-extract-and-run --no-sandbox --disable-gpu || status=1
+          fi
+          echo '::endgroup::'
+
+          echo '::group::deb'
+          if sudo apt-get install -y "$DEB"; then
+            PKG=$(dpkg-deb -f "$DEB" Package)
+            BIN=$(command -v cloudy || echo /opt/Cloudy/cloudy)
+            cat /usr/share/applications/cloudy.desktop 2>/dev/null || echo '(no desktop entry)'
+            echo "running $BIN"
+            xvfb-run -a --server-args='-screen 0 1400x900x24' bash smoke.sh deb \
+              "$BIN" --no-sandbox --disable-gpu || status=1
+            if sudo apt-get remove -y "$PKG" > uninstall.log 2>&1; then
+              echo "apt remove $PKG: ok"
+              test -x /usr/bin/cloudy && echo 'the binary survived apt remove' && status=1
+            else
+              echo "apt remove $PKG: failed"
+              cat uninstall.log
+              status=1
+            fi
+          else
+            echo 'the deb did not install'
+            status=1
+          fi
+          echo '::endgroup::'
+
+          exit "$status"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-smoke-${{ matrix.os }}
+          path: |
+            *.log
+            *.json
+            *.png
+          retention-days: 14
+          if-no-files-found: ignore
+
   publish:
     name: Publish release
     # Only a version tag publishes; a manual run just builds the installers.
