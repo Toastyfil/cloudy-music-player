@@ -4,6 +4,19 @@ What changed in each release of Cloudy, newest first. Every entry matches a git
 tag and a GitHub Release; the release pages are generated from the commits in
 between, so this file is the human summary of the same history.
 
+## 1.3.1 — 17 November 2026
+
+### Added
+
+- **Linux builds.** Every release now includes a 64-bit `AppImage` and a `.deb`
+  alongside the Windows installer and macOS DMGs, both with `yt-dlp` bundled, so
+  playback works on Debian, Ubuntu and their derivatives without extra setup.
+
+### Changed
+
+- The release page and the README list all three platforms, with the Linux
+  install steps and the AppImage's FUSE 2 requirement.
+
 ## 1.3.0 — 17 November 2026
 
 ### Added

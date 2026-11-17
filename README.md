@@ -86,7 +86,17 @@ Everything is on the [Releases page](https://github.com/Toastyfil/cloudy-music-p
 
 **macOS** — `Cloudy-<version>-arm64.dmg` for Apple Silicon, `Cloudy-<version>-x64.dmg` for Intel. Open the DMG and drag Cloudy into Applications.
 
-**Linux** — no prebuilt installer yet; [build from source](#build-from-source).
+**Linux** — `Cloudy-<version>-x64.AppImage` is a single file you can run from anywhere; `Cloudy-<version>-x64.deb` installs it with a menu entry and uninstalls cleanly through `apt`.
+
+```sh
+chmod +x Cloudy-<version>-x64.AppImage
+./Cloudy-<version>-x64.AppImage
+
+# or, as a system package:
+sudo apt install ./Cloudy-<version>-x64.deb
+```
+
+The AppImage needs FUSE 2 (`libfuse2` on Ubuntu 22.04 and newer, `fuse2` on Arch and Fedora); without it, run it with `--appimage-extract-and-run`. Both builds target 64-bit Ubuntu 22.04 and newer (glibc 2.35+), Debian 12, and their derivatives.
 
 The macOS builds are not signed with an Apple Developer ID, so the first launch is blocked by Gatekeeper. Either right-click the app → **Open** → **Open**, or clear the quarantine flag once:
 
@@ -133,7 +143,7 @@ npx electron-builder --linux  # AppImage / deb
 | Audio | One `<audio>` element through a WebAudio graph: gain → EQ → pan → analyser → DSP chain |
 | Local service | Node + Express on `127.0.0.1:3456`: catalog search, stream resolution, lyrics, artwork |
 | Storage | SQLite for library, favorites, playlists and history; audio and lyrics cached on disk |
-| Packaging | electron-builder, GitHub Actions for the Windows installer and both macOS architectures |
+| Packaging | electron-builder, GitHub Actions for the Windows installer, both macOS architectures and the Linux AppImage/deb |
 
 The service is bundled inside the app and started on launch. Nothing leaves your machine except the catalog requests needed to search and fetch audio.
 
@@ -147,7 +157,7 @@ The service is bundled inside the app and started on launch. Nothing leaves your
 
 ## Releases
 
-Every update ships as a tagged release: a version bump, a `CHANGELOG.md` entry and `git tag vX.Y.Z`. The release workflow builds the Windows installer and both macOS DMGs, then writes the notes from the commits since the previous tag — what changed, how to install, and checksums. The process is written down in [docs/releases.md](docs/releases.md).
+Every update ships as a tagged release: a version bump, a `CHANGELOG.md` entry and `git tag vX.Y.Z`. The release workflow builds the Windows installer, both macOS DMGs and the Linux AppImage and deb, then writes the notes from the commits since the previous tag — what changed, how to install, and checksums. The process is written down in [docs/releases.md](docs/releases.md).
 
 ---
 
